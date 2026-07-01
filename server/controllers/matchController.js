@@ -1,68 +1,112 @@
-// server/controllers/matchController.js
 const User = require('../models/User');
 
+function computeScore(currentUser, candidate) {
+  let score = 0;
+
+  const myArtists = currentUser.topArtistNames || [];
+  const theirArtists = candidate.topArtistNames || [];
+  const myTracks = currentUser.topTrackNames || [];
+  const theirTracks = candidate.topTrackNames || [];
+  const myGenres = currentUser.topGenres || [];
+  const theirGenres = candidate.topGenres || [];
+
+  // Artists: higher weight for early-list matches (rank #1 = 10pts, #2 = 9pts, etc.)
+  myArtists.forEach((artist, myRank) => {
+    const theirRank = theirArtists.indexOf(artist);
+    if (theirRank !== -1) {
+      const rankBonus = Math.max(0, 10 - myRank) + Math.max(0, 10 - theirRank);
+      score += rankBonus;
+    }
+  });
+
+  // Tracks: similar rank-weighted scoring, slightly lower base
+  myTracks.forEach((track, myRank) => {
+    const theirRank = theirTracks.indexOf(track);
+    if (theirRank !== -1) {
+      const rankBonus = Math.max(0, 8 - myRank) + Math.max(0, 8 - theirRank);
+      score += rankBonus;
+    }
+  });
+
+  // Genres: flat 3pts per shared genre
+  const commonGenres = myGenres.filter((g) => theirGenres.includes(g));
+  score += commonGenres.length * 3;
+
+  return score;
+}
+
 exports.getMatches = async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
-
   try {
-    // Retrieve all users except the current one
-    const users = await User.find({ _id: { $ne: req.user._id } });
+    const already = [
+      req.user._id,
+      ...(req.user.swipedUsers || []),
+    ];
 
-    // Current user's top artists
-    const currentUserArtists = req.user.topArtists || [];
+    const candidates = await User.find({
+      _id: { $nin: already },
+      profileComplete: true,
+    }).select('-accessToken -refreshToken -passwordHash').limit(50);
 
-    // Create a list of matches with a similarity score
-    const matches = users.map(user => {
-      const otherUserArtists = user.topArtists || [];
-      const commonArtists = currentUserArtists.filter(artist => otherUserArtists.includes(artist));
-      const similarityScore = commonArtists.length;  // Simple count of common artists
-      return {
-        user,
-        similarityScore
-      };
-    });
+    const scored = candidates
+      .map((c) => ({ user: c, similarityScore: computeScore(req.user, c) }))
+      .sort((a, b) => b.similarityScore - a.similarityScore);
 
-    // Sort by highest similarity score
-    matches.sort((a, b) => b.similarityScore - a.similarityScore);
-
-    // Optionally filter out users with zero similarity
-    const filteredMatches = matches.filter(match => match.similarityScore > 0);
-
-    res.json(filteredMatches);
+    res.json({ matches: scored });
   } catch (err) {
-    console.error("Error fetching matches:", err);
+    console.error('Get matches error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.getMutualMatches = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate('mutualMatches', 'displayName profilePicture photos topArtistNames age');
+    res.json({ matches: user.mutualMatches });
+  } catch (err) {
+    console.error('Mutual matches error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
 exports.recordSwipe = async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
-
-  const { targetUserId, action } = req.body; // action should be 'like' or 'dislike'
+  const { targetUserId, action } = req.body;
+  if (!targetUserId || !['like', 'dislike'].includes(action)) {
+    return res.status(400).json({ error: 'targetUserId and action (like|dislike) required' });
+  }
 
   try {
-    // Record that the current user has swiped on the target user
-    if (!req.user.swipedUsers.includes(targetUserId)) {
-      req.user.swipedUsers.push(targetUserId);
+    const currentUser = req.user;
+
+    if (!currentUser.swipedUsers.includes(targetUserId)) {
+      currentUser.swipedUsers.push(targetUserId);
     }
 
-    // If the swipe is a "like", add to likedUsers
-    if (action === 'like' && !req.user.likedUsers.includes(targetUserId)) {
-      req.user.likedUsers.push(targetUserId);
-    }
-
-    await req.user.save();
-
-    // Optionally, check if the target user also liked the current user for a mutual match
-    const targetUser = await User.findById(targetUserId);
     let mutualMatch = false;
-    if (action === 'like' && targetUser && targetUser.likedUsers.includes(req.user._id)) {
-      mutualMatch = true;
+
+    if (action === 'like') {
+      if (!currentUser.likedUsers.includes(targetUserId)) {
+        currentUser.likedUsers.push(targetUserId);
+      }
+
+      const target = await User.findById(targetUserId);
+      if (target && target.likedUsers.includes(currentUser._id)) {
+        mutualMatch = true;
+
+        if (!currentUser.mutualMatches.includes(targetUserId)) {
+          currentUser.mutualMatches.push(targetUserId);
+        }
+        if (!target.mutualMatches.includes(currentUser._id)) {
+          target.mutualMatches.push(currentUser._id);
+          await target.save();
+        }
+      }
     }
 
-    res.json({ message: "Swipe recorded", mutualMatch });
+    await currentUser.save();
+    res.json({ mutualMatch });
   } catch (err) {
-    console.error("Error recording swipe:", err);
+    console.error('Swipe error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

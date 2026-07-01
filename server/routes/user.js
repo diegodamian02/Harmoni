@@ -1,25 +1,16 @@
-// server/routes/user.js
 const express = require('express');
 const router = express.Router();
-const { getUserProfile, updateSpotifyData} = require('../controllers/userController');
+const { getUserProfile, completeProfile, updateSpotifyData } = require('../controllers/userController');
 const { ensureAuth } = require('../utils/authMiddleware');
-const User = require('../models/User');
+const { upload } = require('../utils/cloudinary');
 
-
-// GET all users
-router.get('/users', async (req, res) => {
-    try {
-      const users = await User.find();
-      res.json(users);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-// Protected route: Get current user profile
+// GET current user profile
 router.get('/profile', ensureAuth, getUserProfile);
 
-// NEW: Endpoint to update Spotify data (protected)
+// POST complete profile setup (name, age, gender, photos via Cloudinary)
+router.post('/profile', ensureAuth, upload.array('photos', 6), completeProfile);
+
+// POST update Spotify taste data
 router.post('/spotify-data', ensureAuth, updateSpotifyData);
 
 module.exports = router;

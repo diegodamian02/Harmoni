@@ -3,15 +3,9 @@ const passport = require('passport');
 const SpotifyStrategy = require('passport-spotify').Strategy;
 const User = require('../models/User');
 
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
-
-passport.deserializeUser((id, done) => {
-    User.findById(id)
-        .then(user => done(null, user))
-        .catch(err => done(err, null));
-});
+// Sessions disabled — using JWT. These are no-ops kept for passport-spotify compatibility.
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser((id, done) => done(null, { id }));
 
 passport.use(new SpotifyStrategy(
     {

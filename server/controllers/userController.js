@@ -1,40 +1,61 @@
-// server/controllers/userController.js
 const User = require('../models/User');
 
 exports.getUserProfile = async (req, res) => {
-  if (!req.user) {
-      return res.status(401).json({ error: "Not authenticated" });
-  }
-
   try {
-      const user = await User.findById(req.user.id).select("-accessToken"); // Exclude access token for security
-      if (!user) {
-          return res.status(404).json({ error: "User not found" });
-      }
-
-      res.json(user);
+    const user = await User.findById(req.user._id).select('-accessToken -refreshToken -passwordHash');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
   } catch (err) {
-      console.error("Error fetching user profile:", err);
-      res.status(500).json({ error: "Server error" });
+    console.error('Profile fetch error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-// Controller to update user's Spotify data
+exports.completeProfile = async (req, res) => {
+  try {
+    const { name, age, gender, bio } = req.body;
+    const files = req.files || [];
+
+    if (!name || !age || !gender) {
+      return res.status(400).json({ error: 'Name, age, and gender are required' });
+    }
+
+    const photoUrls = files.map((f) => f.path);
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        displayName: name,
+        age: Number(age),
+        gender,
+        bio: bio || '',
+        photos: photoUrls,
+        profilePicture: photoUrls[0] || req.user.profilePicture,
+        profileComplete: true,
+      },
+      { new: true }
+    ).select('-accessToken -refreshToken -passwordHash');
+
+    res.json({ user });
+  } catch (err) {
+    console.error('Profile completion error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 exports.updateSpotifyData = async (req, res) => {
-    if (!req.user) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
+  const { topArtists, topTracks, topGenres } = req.body;
+  try {
+    const updates = {};
+    if (topArtists) updates.topArtistNames = topArtists;
+    if (topTracks) updates.topTrackNames = topTracks;
+    if (topGenres) updates.topGenres = topGenres;
 
-    const { topArtists, topTracks } = req.body;
-    try {
-        // Update the user's listening data fields if provided
-        if (topArtists) req.user.topArtistsNames = topArtists;
-        if (topTracks) req.user.topTracksNames = topTracks;
-
-        await req.user.save();
-        res.json({ message: "Spotify data updated successfully", user: req.user });
-    } catch (error) {
-        console.error("Error updating Spotify data:", error);
-        res.status(500).json({ error: "Server error" });
-    }
+    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true })
+      .select('-accessToken -refreshToken -passwordHash');
+    res.json({ user });
+  } catch (err) {
+    console.error('Spotify data update error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 };

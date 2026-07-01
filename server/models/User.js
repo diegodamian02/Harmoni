@@ -1,40 +1,51 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    spotifyId: { type: String, required: true, unique: true },
-    displayName: { type: String, required: true },
-    email: { type: String, unique: true, sparse: true }, // Some users might not have an email
-    profilePicture: { type: String },
+  // Identity
+  spotifyId: { type: String, required: true, unique: true },
+  displayName: { type: String, required: true },
+  email: { type: String, unique: true, sparse: true },
+  passwordHash: { type: String, select: false },
+  profilePicture: { type: String },
 
-    // Spotify OAuth Tokens
-    accessToken: { type: String, required: true }, // Needed for Spotify API requests
-    refreshToken: { type: String, required: true }, // Needed to refresh accessToken
-    tokenExpiresAt: { type: Date }, // Helps track token expiration
+  // Profile completion
+  profileComplete: { type: Boolean, default: false },
+  age: { type: Number },
+  gender: { type: String },
+  bio: { type: String, default: '' },
+  photos: [{ type: String }],
 
-    // Spotify API Data
-    scopes: { type: [String] }, // Permissions granted by the user
-    playlists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Playlist" }],
-    likedSongs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
-    topArtists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Artist" }],
-    listeningHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
+  // Location (GeoJSON Point for $near queries)
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] },
+  },
 
-    // TEMP FIELDS FOR TESTING ///////////////////////
-    topArtistNames: { type: [String], default: [] },
-    topTrackNames: { type: [String], default: [] },
-    //////////////////////////////////////////////////
+  // Spotify OAuth tokens
+  accessToken: { type: String, required: true },
+  refreshToken: { type: String, required: true },
+  tokenExpiresAt: { type: Date },
+  scopes: { type: [String] },
 
-    // New fields for matching functionality
-    likedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],  // Users this user has liked
-    swipedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Users this user has swiped on
+  // Spotify taste data
+  topArtistNames: { type: [String], default: [] },
+  topArtistIds: { type: [String], default: [] },
+  topTrackNames: { type: [String], default: [] },
+  topGenres: { type: [String], default: [] },
 
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+  // Matching
+  likedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  swipedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  mutualMatches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
-// Middleware to update `updatedAt` automatically before saving
-userSchema.pre("save", function (next) {
-    this.updatedAt = Date.now();
-    next();
+userSchema.index({ location: '2dsphere' });
+userSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model('User', userSchema);
