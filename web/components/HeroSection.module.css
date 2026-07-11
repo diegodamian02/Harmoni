@@ -1,0 +1,189 @@
+/* ── Layout ── */
+.section {
+  position: relative;
+  min-height: 100svh;
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  padding: 8rem 2.5rem 4rem;
+  overflow: hidden;
+}
+
+/* ── Album layer ── */
+.albumsLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.albumCard {
+  position: absolute;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Gradient masks text from covers on the left */
+.section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    #212121 38%,
+    rgba(33, 33, 33, 0.65) 58%,
+    rgba(33, 33, 33, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Text ── */
+.content {
+  position: relative;
+  z-index: 2;
+  max-width: 580px;
+  will-change: transform;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+}
+
+.heading {
+  font-family: var(--font-title);
+  font-size: clamp(3rem, 9vw, 7.5rem);
+  font-weight: 300;
+  letter-spacing: -0.045em;
+  line-height: 1.0;
+  color: var(--text-on-dark);
+  margin-bottom: 2rem;
+  text-wrap: balance;
+}
+
+.grad {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sub {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 2vw, 1.125rem);
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--muted-on-dark);
+  margin-bottom: 2.75rem;
+}
+
+.desktopBreak {
+  display: none;
+}
+
+/* ── Buttons ── */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+  align-items: center;
+}
+
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--grad);
+  border-radius: 50px;
+  padding: 0.875rem 1.875rem;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.btnPrimary:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
+}
+
+.btnSpotify {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  background: #1db954;
+  border-radius: 50px;
+  padding: 0.875rem 1.625rem;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.btnSpotify:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
+}
+
+/* ── Album tier visibility ── */
+/* tier_center: the covers that sit closer to center (right: 42-48%) */
+/* tier_side:   the covers on the right edge (right: 6-24%) */
+
+/* Tablet: hide center covers, dim side covers */
+@media (max-width: 1024px) {
+  .tier_center {
+    display: none;
+  }
+  .tier_side {
+    opacity: 0.6;
+  }
+}
+
+/* Mobile: hide all covers, remove the gradient overlay */
+@media (max-width: 640px) {
+  .tier_side {
+    display: none;
+  }
+
+  .section::after {
+    display: none;
+  }
+
+  .section {
+    padding: 7rem 1.25rem 5rem;
+    align-items: flex-start;
+    padding-top: 8rem;
+  }
+
+  .content {
+    max-width: 100%;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btnPrimary,
+  .btnSpotify {
+    justify-content: center;
+  }
+}
+
+/* Desktop: show break inside sub copy */
+@media (min-width: 900px) {
+  .desktopBreak {
+    display: inline;
+  }
+}

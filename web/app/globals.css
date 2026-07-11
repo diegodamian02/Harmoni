@@ -1,0 +1,39 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-dark: #212121;
+  --bg-light: #ffffff;
+  --primary: #ff69b4;
+  --deep: #73105a;
+  --grad: linear-gradient(135deg, #ff69b4 0%, #73105a 100%);
+  --text-on-dark: #f5f5f5;
+  --text-on-light: #111111;
+  --muted-on-dark: #888888;
+  --muted-on-light: #666666;
+  --font-title: var(--font-poppins), "Gill Sans", "Century Gothic", sans-serif;
+  --font-body: var(--font-dm-sans), "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--primary);
+  color: #fff;
+}
