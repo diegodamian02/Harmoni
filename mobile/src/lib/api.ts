@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const BASE_URL = __DEV__
   ? 'http://172.16.226.90:8333'
-  : 'https://your-production-url.railway.app'; // swap when deployed
+  : 'https://api.harmoni.cc';
 
 const TOKEN_KEY = 'harmoni_jwt';
 
