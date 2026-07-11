@@ -207,10 +207,19 @@
 
   .content {
     max-width: 100%;
+    text-align: center;
   }
 
   .heading {
     font-size: clamp(2.4rem, 10.5vw, 3.2rem);
+  }
+
+  .eyebrow {
+    text-align: center;
+  }
+
+  .sub {
+    text-align: center;
   }
 
   .actions {
