@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 const BASE_URL = __DEV__
-  ? 'http://localhost:8333'
+  ? 'http://172.16.226.90:8333'
   : 'https://your-production-url.railway.app'; // swap when deployed
 
 const TOKEN_KEY = 'harmoni_jwt';
@@ -29,7 +29,15 @@ async function request<T>(
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
