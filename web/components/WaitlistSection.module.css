@@ -114,9 +114,9 @@
 }
 
 /* Mobile: stack form vertically */
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .section {
-    padding: 6rem 1.25rem;
+    padding: 5rem 1.25rem 4rem;
     min-height: auto;
     align-items: flex-start;
   }

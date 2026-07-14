@@ -161,10 +161,10 @@
     opacity: 0.9;
   }
 
-  /* Scatter 3 albums across the top portion of the screen */
+  /* Scatter 3 albums below the fixed nav (~60px) */
   .albumsLayer .albumCard:nth-child(1) {
     /* oasis — top left */
-    top: 5% !important;
+    top: 12% !important;
     left: 4% !important;
     right: auto !important;
     width: 120px !important;
@@ -173,7 +173,7 @@
 
   .albumsLayer .albumCard:nth-child(2) {
     /* drake — center, slightly lower */
-    top: 22% !important;
+    top: 26% !important;
     right: 30% !important;
     width: 130px !important;
     height: 130px !important;
@@ -181,7 +181,7 @@
 
   .albumsLayer .albumCard:nth-child(3) {
     /* weeknd — top right */
-    top: 5% !important;
+    top: 12% !important;
     right: 4% !important;
     width: 110px !important;
     height: 110px !important;
