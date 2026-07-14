@@ -4,7 +4,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const passport = require('passport');
 const { verifyToken } = require('./utils/jwt');
 const User = require('./models/User');
 const Message = require('./models/Message');
@@ -17,7 +16,6 @@ const messageRoutes = require('./routes/messages');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io with JWT auth
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 });
@@ -48,9 +46,7 @@ io.on('connection', (socket) => {
         receiverId,
         text: text.trim(),
       });
-      // Deliver to receiver if online
       io.to(receiverId).emit('new_message', msg);
-      // Confirm back to sender
       socket.emit('new_message', msg);
     } catch (err) {
       console.error('Socket message error:', err);
@@ -60,27 +56,20 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => socket.leave(userId));
 });
 
-// Middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Passport (only for Spotify OAuth redirect flow — no sessions)
-app.use(passport.initialize());
-require('./utils/spotifyPassport');
-
-// MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB error:', err));
 
-// Routes
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/match', matchRoutes);
 app.use('/messages', messageRoutes);
 
-app.get('/', (req, res) => res.send('Harmoni API v2'));
+app.get('/', (req, res) => res.send('Harmoni API'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -88,4 +77,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 8333;
-server.listen(PORT, () => console.log(`Server + Socket.io running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
