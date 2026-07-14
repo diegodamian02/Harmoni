@@ -6,9 +6,25 @@ A music-based dating app that matches people by what they actually listen to —
 
 ---
 
-## What It Is
+## Team
 
-Harmoni connects users through Spotify listening data. Top artists and tracks feed a compatibility scoring algorithm that surfaces your music twin. Match, chat, vibe.
+| Person | Role |
+|---|---|
+| **Diego** | Full-stack engineering |
+| **Virginia** | UI/UX & motion design (Figma) |
+
+**For Virginia:** Figma frames labeled **"Ready to build"** get implemented exactly as specced. The visual language is Poppins (titles) + DM Sans (body), dark `#212121` and white sections, pink-to-deep gradient accent (`#ff69b4 → #73105a`). The landing page at `harmoni.cc` is the brand reference — the app inherits from it.
+
+---
+
+## What It Is (Post-Pivot — July 2026)
+
+Spotify OAuth is **out** (Feb 2026 API restrictions made it unviable). Harmoni is now fully self-contained:
+
+- Users build a taste profile manually: **3 genres + 4 artists + 8 songs**
+- Music data comes from three open APIs proxied through our server (iTunes, MusicBrainz, Last.fm)
+- A 3-layer compatibility algorithm scores every pair — no Spotify required
+- Each match generates a shared **8-track Blend** playlist using 30-sec iTunes previews
 
 ---
 
@@ -16,14 +32,26 @@ Harmoni connects users through Spotify listening data. Top artists and tracks fe
 
 | Layer | Technology |
 |---|---|
-| Mobile | React Native · Expo SDK 54 · TypeScript |
+| Mobile | React Native · Expo SDK 54 · TypeScript · expo-router |
 | Landing page | Next.js (App Router) · Framer Motion · CSS Modules |
 | Backend | Node.js · Express · Socket.io |
 | Database | MongoDB Atlas |
-| Auth | JWT · Spotify OAuth 2.0 |
+| Auth | JWT (email/password) |
 | Media | Cloudinary |
-| Deployment | Railway (backend + landing page) |
+| Deployment | Railway (`api.harmoni.cc` + `harmoni.cc`) |
 | Domain | Namecheap — `harmoni.cc` |
+
+---
+
+## Data Stack
+
+All external API calls go through **our server only** — the mobile client never calls these directly.
+
+| API | Purpose | Limits |
+|---|---|---|
+| **iTunes Search** | Artist autocomplete, top tracks, cover art, 30-sec previews | ~20 req/min — server cache mandatory |
+| **MusicBrainz** | Canonical artist IDs (MBIDs) + genre tags | 1 req/sec — queued worker required |
+| **Last.fm** | Similar-artist graph + listener counts for rarity scoring | Free key · mbid fields often empty — normalizedName fallback |
 
 ---
 
@@ -31,147 +59,134 @@ Harmoni connects users through Spotify listening data. Top artists and tracks fe
 
 ```
 Harmoni/
-├── mobile/               # React Native / Expo app
-│   ├── app/              # expo-router screens
-│   │   ├── _layout.tsx   # Root layout, auth guard, font loading
-│   │   ├── index.tsx     # Entry — redirects to /(auth)/landing
-│   │   ├── (auth)/       # Landing, login, register screens
-│   │   └── (tabs)/       # Main app: swipe, matches, messages, profile
+├── mobile/                   # React Native / Expo app
+│   ├── app/
+│   │   ├── _layout.tsx       # Root layout, auth guard
+│   │   ├── index.tsx         # Entry → redirects to /(auth)/landing
+│   │   ├── (auth)/           # Landing, login, register
+│   │   └── (tabs)/           # Swipe, matches, messages, profile
 │   └── src/
-│       ├── context/      # AuthContext (JWT state)
-│       ├── lib/api.ts    # HTTP client, BASE_URL dev/prod switch
-│       └── components/   # Shared UI components
+│       ├── context/          # AuthContext (JWT)
+│       ├── lib/api.ts        # HTTP client
+│       └── components/       # Shared UI
 │
-├── server/               # Express backend
-│   ├── app.js            # Entry point, Socket.io setup
-│   └── routes/
-│       ├── auth.js       # Register, login, Spotify OAuth
-│       ├── user.js       # Profile CRUD
-│       ├── match.js      # Swipe logic, match creation
-│       └── messages.js   # Chat history (REST)
+├── server/                   # Express backend
+│   ├── app.js                # Entry point + Socket.io
+│   ├── models/
+│   │   ├── User.js           # User + musicProfile schema
+│   │   ├── Artist.js         # Shared artist cache (iTunes/MusicBrainz/Last.fm)
+│   │   └── Message.js        # Chat messages
+│   ├── routes/
+│   │   ├── auth.js           # Register, login (rate limited)
+│   │   ├── user.js           # Profile CRUD
+│   │   ├── music.js          # iTunes proxy + onboarding endpoints [TO BUILD]
+│   │   ├── match.js          # Swipe, match creation, blend
+│   │   └── messages.js       # Chat history
+│   ├── services/
+│   │   └── music.js          # iTunes/MusicBrainz/Last.fm service layer [TO BUILD]
+│   └── matching/
+│       ├── score.js          # 3-layer compatibility scorer [TO BUILD]
+│       └── config.js         # Tunable scoring weights [TO BUILD]
 │
-└── web/                  # Next.js landing page
-    ├── app/
-    │   ├── layout.tsx    # Fonts, metadata, Google Analytics
-    │   ├── page.tsx      # Server component → ClientWrapper
-    │   └── globals.css   # CSS variables, reset
-    ├── components/
-    │   ├── ClientWrapper.tsx     # ssr:false dynamic import wrapper
-    │   ├── MainPage.tsx          # Splash/main crossfade orchestrator
-    │   ├── Splash.tsx            # Letter-reveal animation
-    │   ├── Nav.tsx               # Sticky frosted-glass nav
-    │   ├── HeroSection.tsx       # Parallax hero + album covers
-    │   ├── HookSection.tsx       # "We ask what you listen to at 2am"
-    │   ├── HowItWorksSection.tsx # 3-step explainer
-    │   ├── WaitlistSection.tsx   # Email capture form
-    │   └── Footer.tsx
-    └── public/albums/            # Album cover art (local, no CDN)
+└── web/                      # Next.js landing page
+    ├── app/layout.tsx         # Fonts, GTM, metadata
+    ├── components/            # Splash, Hero, Nav, Sections, Footer
+    └── public/albums/         # Local album art
 ```
 
 ---
 
-## Phases
+## Matching Algorithm
+
+**Score = 100 × (0.5·L1 + 0.3·L2 + 0.2·L3)**
+
+| Layer | What it measures | Weight |
+|---|---|---|
+| **L1** Direct overlap | Shared artists, weighted by rank (1–4) × rarity (niche fans score higher) | 50% |
+| **L2** Similar-artist bridge | Last.fm similarity graph edges between each user's artists | 30% |
+| **L3** Genre Jaccard | Overlap of the 3 chosen genre chips | 20% |
+
+Scorer reads only the local MongoDB artists cache — never calls external APIs at match time.
+
+---
+
+## The Blend (Signature Feature)
+
+On match creation: 8-track playlist interleaving 4 tracks from each user, guaranteeing both rank-1 artists appear. Lives in-app with 30-sec iTunes previews + deep-links to Spotify/Apple Music for full listening.
+
+---
+
+## Build Phases
 
 ### Phase 0 — Foundation
 **Status: Complete**
+- [x] Monorepo structure
+- [x] Express + MongoDB + JWT auth
+- [x] Expo app with expo-router + AuthContext
+- [x] Socket.io server-side
 
-- [x] Monorepo structure (`mobile/`, `server/`, `web/`)
-- [x] Express backend scaffolded with routes for auth, users, matches, messages
-- [x] MongoDB Atlas connected
-- [x] JWT authentication (register, login)
-- [x] Expo project bootstrapped with TypeScript and expo-router
-- [x] Root layout with auth guard and font loading
-- [x] AuthContext for global JWT state
-- [x] API client with dev/prod BASE_URL switching
-
----
-
-### Phase 1 — Core Mobile App
-**Status: Complete (needs end-to-end testing)**
-
-- [x] Auth flow UI — landing, login, register screens
-- [x] Spotify OAuth routes in backend
-- [x] Spotify redirect URIs registered in Spotify Developer Dashboard
-- [x] Socket.io wired up server-side
-- [x] Cloudinary image upload configured
-- [x] Mobile app runs on iPhone via Expo Go (LAN mode)
-
----
-
-### Phase 2 — Landing Page
+### Phase 1 — Security & Cleanup
 **Status: Complete**
+- [x] Spotify OAuth removed entirely
+- [x] passport / passport-spotify / express-session removed
+- [x] User model rebuilt with `musicProfile` schema
+- [x] Rate limiting on auth endpoints (10 req / 15 min)
+- [ ] Rotate MongoDB + Cloudinary credentials ← **Diego: do this manually**
 
-- [x] Next.js app with App Router and TypeScript
-- [x] Splash screen — bold "harmoni" letter-reveal animation
-- [x] Smooth crossfade from splash to hero (no hard cut)
-- [x] Parallax hero with 5 floating album covers
-- [x] Alternating dark/white sections
-- [x] Nav, HookSection, HowItWorksSection, WaitlistSection, Footer
-- [x] Poppins + DM Sans via `next/font/google`
-- [x] Fully responsive — desktop, tablet, mobile
-- [x] Mobile hero: 3 albums visible at top, text block centered below
-- [x] Deployed to Railway, domain pending DNS setup
-- [x] Google Analytics wired up
-
----
-
-### Phase 3 — Music Matching (In Progress)
+### Phase 2 — Waitlist
 **Status: Not started**
+- [ ] `POST /api/waitlist` → save email to MongoDB
+- [ ] Wire `harmoni.cc` waitlist form to live endpoint
+- [ ] Rate limit the waitlist endpoint
 
-- [ ] Spotify OAuth tested end-to-end on mobile (connect → top artists/tracks saved to MongoDB)
-- [ ] Music compatibility scoring algorithm (replace placeholder)
-- [ ] Swipe/match flow tested with 2 real accounts
-- [ ] Match result screen
-
----
-
-### Phase 4 — Real-Time Chat
+### Phase 3 — Music Service Layer
 **Status: Not started**
+- [ ] `server/services/music.js` — iTunes search proxy with Mongo cache (TTL 7d)
+- [ ] iTunes artist top-tracks endpoint (TTL 30d)
+- [ ] MusicBrainz background worker (p-queue, 1 req/sec, permanent cache)
+- [ ] Last.fm `getSimilar` + `getInfo` → artists collection
+- [ ] `profileReady` flag set when all background jobs complete
 
-- [ ] Socket.io client wired in `messages.tsx` (currently REST-only)
-- [ ] Message delivery confirmation
-- [ ] Typing indicators
-
----
-
-### Phase 5 — Polish & Launch Prep
+### Phase 4 — Onboarding Endpoints
 **Status: Not started**
+- [ ] `POST /api/onboarding/genres` — save 3 genre chips (validated against curated list)
+- [ ] `GET /api/music/search?q=` — iTunes artist autocomplete
+- [ ] `GET /api/music/artists/:id/tracks` — top tracks for song picker
+- [ ] `POST /api/onboarding/artists` — save 4 ranked artists + trigger background jobs
+- [ ] `POST /api/onboarding/tracks` — save 8 songs (2 per artist)
 
-- [ ] Waitlist backend endpoint — save emails to MongoDB
-- [ ] Waitlist "Connect with Spotify" button → real OAuth flow (not `#waitlist` anchor)
-- [ ] Open Graph image for link previews (`og:image`)
-- [ ] `prefers-reduced-motion` support for all animations
-- [ ] Remove debug `console.log` statements from `mobile/app/_layout.tsx`
-- [ ] API rate limiting (`express-rate-limit`) on auth endpoints
-- [ ] Fix hardcoded `BASE_URL` dev IP in `mobile/src/lib/api.ts`
-- [ ] Rotate all exposed credentials (see Security below)
+### Phase 5 — Scoring & Matching
+**Status: Not started**
+- [ ] `server/matching/score.js` — 3-layer scorer (test-first)
+- [ ] Seed script: 15 realistic fake profiles
+- [ ] Pairwise histogram for weight calibration
+- [ ] Swipe endpoints + match creation
+- [ ] Blend generator (8-track interleave)
 
----
+### Phase 6 — Mobile UI
+**Status: Blocked on Figma / In parallel with backend**
+- [ ] Remove Spotify references from mobile
+- [ ] Genre chip screen (3 selections from curated list)
+- [ ] Artist search screen (debounced, autocomplete from iTunes proxy)
+- [ ] Song picker screen (2 songs per artist, cover art + 30-sec preview)
+- [ ] Swipe cards (compatibility score + shared artists highlighted)
+- [ ] Match screen + Blend player (expo-av)
+- [ ] Socket.io client in messages screen
 
-## Environment Variables
+### Phase 7 — Landing Page Update
+**Status: Not started**
+- [ ] Remove "Connect with Spotify" button from hero
+- [ ] Update HowItWorksSection copy (tap-based onboarding, no Spotify)
+- [ ] "Connect with Spotify" → "Join the Waitlist" single CTA
+- [ ] OG image for link previews
 
-### Backend (`server/` — set in Railway)
-
-```
-MONGODB_URI=
-JWT_SECRET=
-JWT_EXPIRES_IN=7d
-SPOTIFY_CLIENT_ID=
-SPOTIFY_CLIENT_SECRET=
-SPOTIFY_CALLBACK_URL=https://api.harmoni.cc/auth/spotify/callback
-CLIENT_URL=https://api.harmoni.cc
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-NODE_ENV=production
-# Do NOT set PORT — Railway injects it
-```
-
-### Landing page (`web/` — set in Railway)
-
-```
-NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
-```
+### Phase 8 — Launch Prep
+**Status: Not started**
+- [ ] `prefers-reduced-motion` support for animations
+- [ ] Remove debug `console.log` from `mobile/app/_layout.tsx`
+- [ ] API rate limiting on all public endpoints
+- [ ] Fix hardcoded `BASE_URL` in `mobile/src/lib/api.ts`
+- [ ] Cold-start seed profiles in production DB
 
 ---
 
@@ -181,50 +196,67 @@ NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 ```bash
 cd server
 npm install
-npm run dev   # nodemon on port 8333
+node app.js   # runs on :8333
 ```
 
 ### Landing page
 ```bash
 cd web
 npm install
-npm run dev   # Next.js on port 3000
+npm run dev   # runs on :3000
 ```
 
 ### Mobile
 ```bash
 cd mobile
 npm install
-npx expo start --lan   # Connect iPhone on same network via Expo Go
+npx expo start --lan
+# Connect iPhone on same network via Expo Go
+# Set BASE_URL in mobile/src/lib/api.ts to your Mac's LAN IP
 ```
 
-Set `BASE_URL` in `mobile/src/lib/api.ts` to your Mac's LAN IP while in dev.
+---
+
+## Environment Variables
+
+### Backend (`server/.env` + Railway backend service)
+```
+MONGODB_URI=
+JWT_SECRET=
+JWT_EXPIRES_IN=7d
+LASTFM_API_KEY=
+LASTFM_SECRET=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+NODE_ENV=production
+# Do NOT set PORT — Railway injects it
+```
+
+### Landing page (Railway web service)
+```
+NEXT_PUBLIC_GTM_ID=GTM-TWRLQBQC
+```
 
 ---
 
 ## Deployment
 
-| Service | Platform | Notes |
+| Service | Platform | Config |
 |---|---|---|
 | Backend | Railway | Root: `server/`, start: `node app.js` |
 | Landing page | Railway | Root: `web/`, build: `npm run build`, start: `npm start` |
 | Database | MongoDB Atlas | Whitelist `0.0.0.0/0` for Railway egress |
-| Domain | Namecheap | `api.harmoni.cc` → Railway backend; `harmoni.cc` → Railway web |
+
+**DNS (Namecheap):**
+- `api.harmoni.cc` → Railway backend
+- `harmoni.cc` / `www` → Railway web
 
 ---
 
-## Security
+## Security Notes
 
-The following credentials were exposed during development and **must be rotated before public launch:**
-
-- MongoDB Atlas password
-- Spotify Client Secret
-- Cloudinary API Secret
-
-Never commit `.env` files. Use Railway's environment variable panel for all secrets.
-
----
-
-## Built by
-
-Diego — [github.com/diegodamian02](https://github.com/diegodamian02)
+- Never commit `.env` files — `.gitignore` covers this
+- Credentials go in Railway environment variables only
+- **MongoDB password + Cloudinary API secret need manual rotation** (exposed in earlier git history)
+- Rate limiting: auth endpoints 10 req/15min · waitlist TBD
