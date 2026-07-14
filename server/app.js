@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const matchRoutes = require('./routes/match');
 const messageRoutes = require('./routes/messages');
+const waitlistRoutes = require('./routes/waitlist');
 
 const app = express();
 const server = http.createServer(app);
@@ -68,6 +69,7 @@ app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/match', matchRoutes);
 app.use('/messages', messageRoutes);
+app.use('/waitlist', waitlistRoutes);
 
 app.get('/', (req, res) => res.send('Harmoni API'));
 

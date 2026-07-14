@@ -7,18 +7,18 @@ import styles from "./HowItWorksSection.module.css";
 const STEPS = [
   {
     num: "01",
-    title: "Connect Spotify",
-    body: "Link your account. We pull your top artists and tracks — no surveys, no bios.",
+    title: "Build Your Taste Profile",
+    body: "Pick 3 genres, 4 artists, and 8 songs. No surveys. No bios. Just the music that actually defines you.",
   },
   {
     num: "02",
     title: "Match by Sound",
-    body: "Our algorithm finds people whose taste overlaps with yours in ways that actually matter.",
+    body: "Our algorithm finds people whose taste overlaps with yours in ways that actually matter — shared artists, similar scenes, genre overlap.",
   },
   {
     num: "03",
-    title: "Start a Conversation",
-    body: "You already have something to talk about. The hard part is done.",
+    title: "Start with a Blend",
+    body: "Every match comes with a shared 8-track playlist built from both of your libraries. You already have something to talk about.",
   },
 ];
 

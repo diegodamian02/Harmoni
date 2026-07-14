@@ -90,6 +90,18 @@
   color: var(--muted-on-light);
 }
 
+.fineError {
+  color: #e05;
+}
+
+.success {
+  width: 100%;
+}
+
+.waveWrap {
+  margin-bottom: 1.75rem;
+}
+
 /* Mobile: stack form vertically */
 @media (max-width: 520px) {
   .section {

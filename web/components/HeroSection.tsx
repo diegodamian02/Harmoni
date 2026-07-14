@@ -38,11 +38,6 @@ const ALBUMS = [
   },
 ];
 
-const SpotifyIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.516 17.306c-.213.356-.666.47-1.022.257-2.797-1.71-6.32-2.096-10.47-1.148-.397.09-.796-.154-.887-.553-.09-.398.154-.796.553-.887 4.538-1.035 8.43-.59 11.57 1.326.356.213.47.667.256 1.005zm1.472-3.27c-.27.437-.843.574-1.28.305-3.2-1.968-8.08-2.54-11.87-1.39-.47.143-.968-.118-1.11-.588-.143-.47.118-.967.588-1.11 4.33-1.314 9.705-.678 13.37 1.583.436.27.572.843.302 1.2zm.127-3.4C15.532 8.49 9.37 8.28 5.976 9.293c-.564.17-1.162-.15-1.333-.716-.17-.565.15-1.163.716-1.334 3.93-1.193 10.47-.962 14.6 1.607.508.303.674.958.37 1.466-.302.508-.956.674-1.464.37z" />
-  </svg>
-);
 
 export default function HeroSection() {
   const ref = useRef<HTMLElement>(null);
@@ -130,10 +125,6 @@ export default function HeroSection() {
         >
           <a href="#waitlist" className={styles.btnPrimary}>
             Join the Waitlist
-          </a>
-          <a href="#waitlist" className={styles.btnSpotify}>
-            <SpotifyIcon />
-            Connect with Spotify
           </a>
         </motion.div>
       </motion.div>
