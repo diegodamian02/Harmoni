@@ -99,7 +99,18 @@
 }
 
 .waveWrap {
-  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  margin-bottom: 2rem;
+  height: 52px;
+}
+
+.waveBar {
+  width: 7px;
+  border-radius: 4px;
+  background: linear-gradient(to top, #73105a, #ff69b4);
+  transform-origin: bottom;
 }
 
 /* Mobile: stack form vertically */

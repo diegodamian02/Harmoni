@@ -1,25 +1,119 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import styles from "./WaitlistSection.module.css";
 
-const WaveIcon = () => (
-  <svg width="52" height="36" viewBox="0 0 52 36" fill="none" aria-hidden="true">
-    <rect x="0"  y="10" width="6" height="16" rx="3" fill="url(#g)" opacity="0.5"/>
-    <rect x="9"  y="4"  width="6" height="28" rx="3" fill="url(#g)" opacity="0.7"/>
-    <rect x="18" y="0"  width="6" height="36" rx="3" fill="url(#g)"/>
-    <rect x="27" y="6"  width="6" height="24" rx="3" fill="url(#g)" opacity="0.85"/>
-    <rect x="36" y="12" width="6" height="12" rx="3" fill="url(#g)" opacity="0.6"/>
-    <rect x="45" y="8"  width="6" height="20" rx="3" fill="url(#g)" opacity="0.75"/>
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#ff69b4"/>
-        <stop offset="100%" stopColor="#73105a"/>
-      </linearGradient>
-    </defs>
-  </svg>
+const BRAND_COLORS = ["#ff69b4", "#73105a", "#ff9de2", "#c2185b", "#ffffff", "#f8bbd0"];
+
+function fireConfetti() {
+  const count = 220;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 80, zIndex: 9999 };
+
+  function randomInRange(min: number, max: number) {
+    return Math.random() * (max - min) + min;
+  }
+
+  // Three staggered bursts for a dynamic feel
+  const bursts = [
+    { origin: { x: 0.5, y: 0.6 }, scalar: 1.1, delay: 0 },
+    { origin: { x: 0.2, y: 0.65 }, scalar: 0.85, delay: 150 },
+    { origin: { x: 0.8, y: 0.65 }, scalar: 0.85, delay: 280 },
+  ];
+
+  bursts.forEach(({ origin, scalar, delay }) => {
+    setTimeout(() => {
+      confetti({
+        ...defaults,
+        particleCount: Math.floor(count * scalar),
+        origin,
+        scalar,
+        colors: BRAND_COLORS,
+        shapes: ["circle", "square"],
+        gravity: randomInRange(0.8, 1.2),
+        drift: randomInRange(-0.1, 0.1),
+      });
+    }, delay);
+  });
+}
+
+const WaveBar = ({ delay, height }: { delay: number; height: number }) => (
+  <motion.div
+    className={styles.waveBar}
+    style={{ height }}
+    initial={{ scaleY: 0 }}
+    animate={{ scaleY: 1 }}
+    transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+  />
 );
+
+const BARS = [
+  { height: 18, delay: 0.1 },
+  { height: 30, delay: 0.16 },
+  { height: 42, delay: 0.22 },
+  { height: 36, delay: 0.28 },
+  { height: 48, delay: 0.34 },
+  { height: 28, delay: 0.4 },
+  { height: 38, delay: 0.46 },
+  { height: 22, delay: 0.52 },
+];
+
+function SuccessState() {
+  useEffect(() => {
+    fireConfetti();
+  }, []);
+
+  return (
+    <motion.div
+      key="success"
+      className={styles.success}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
+      <motion.div
+        className={styles.waveWrap}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {BARS.map((bar, i) => (
+          <WaveBar key={i} delay={bar.delay} height={bar.height} />
+        ))}
+      </motion.div>
+
+      <motion.h2
+        className={styles.heading}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      >
+        You&apos;re on the list.
+      </motion.h2>
+
+      <motion.p
+        className={styles.sub}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.5 }}
+      >
+        Check your inbox — we sent you a note.
+        <br />
+        We&apos;ll be in touch when Harmoni drops.
+      </motion.p>
+
+      <motion.p
+        className={styles.fine}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+      >
+        Tell a friend who&apos;d get it.
+      </motion.p>
+    </motion.div>
+  );
+}
 
 export default function WaitlistSection() {
   const ref = useRef<HTMLElement>(null);
@@ -57,41 +151,13 @@ export default function WaitlistSection() {
       >
         <AnimatePresence mode="wait">
           {status === "done" ? (
-            <motion.div
-              key="success"
-              className={styles.success}
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <motion.div
-                className={styles.waveWrap}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <WaveIcon />
-              </motion.div>
-              <motion.h2
-                className={styles.heading}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              >
-                You&apos;re on the list.
-              </motion.h2>
-              <motion.p
-                className={styles.sub}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.32 }}
-              >
-                Check your inbox — we sent you a note. We&apos;ll be in touch when
-                Harmoni drops. Tell a friend who&apos;d get it.
-              </motion.p>
-            </motion.div>
+            <SuccessState key="success" />
           ) : (
-            <motion.div key="form" exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
+            <motion.div
+              key="form"
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.25 }}
+            >
               <h2 className={styles.heading}>Be first.</h2>
               <p className={styles.sub}>
                 Launching soon. Drop your email and we&apos;ll let you know.
