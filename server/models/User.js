@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema({
   displayName:     { type: String, required: true },
   email:           { type: String, unique: true, sparse: true },
   passwordHash:    { type: String, select: false },
+  appleId:         { type: String, unique: true, sparse: true },
+  googleId:        { type: String, unique: true, sparse: true },
   profilePicture:  { type: String },
 
   profileComplete: { type: Boolean, default: false },

@@ -1,12 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
+const appleSignin = require('apple-signin-auth');
+const { OAuth2Client } = require('google-auth-library');
 const router = express.Router();
 const User = require('../models/User');
 const { signToken } = require('../utils/jwt');
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
@@ -55,6 +59,95 @@ router.post('/login', authLimiter, async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Apple Sign In
+// Body: { identityToken, fullName? }
+// Apple only sends name on the FIRST sign-in — store it then, ignore absence later
+router.post('/apple', authLimiter, async (req, res) => {
+  const { identityToken, fullName } = req.body;
+  if (!identityToken) return res.status(400).json({ error: 'identityToken required' });
+
+  try {
+    const appleUser = await appleSignin.verifyIdToken(identityToken, {
+      audience: 'com.harmoni.app',
+      ignoreExpiration: false,
+    });
+
+    const appleId = appleUser.sub;
+    const email   = appleUser.email || null;
+
+    let user = await User.findOne({ appleId });
+
+    if (!user) {
+      // New user — try to merge with an existing email account
+      if (email) {
+        user = await User.findOne({ email });
+      }
+
+      if (user) {
+        user.appleId = appleId;
+      } else {
+        const displayName =
+          fullName?.givenName
+            ? `${fullName.givenName} ${fullName.familyName || ''}`.trim()
+            : email?.split('@')[0] || 'Harmoni User';
+
+        user = new User({ displayName, email, appleId });
+      }
+
+      await user.save();
+    }
+
+    const token = signToken(user._id);
+    res.json({ token, isNewUser: !user.profileComplete });
+  } catch (err) {
+    console.error('Apple auth error:', err);
+    res.status(401).json({ error: 'Invalid Apple token' });
+  }
+});
+
+// Google Sign In
+// Body: { idToken }
+router.post('/google', authLimiter, async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) return res.status(400).json({ error: 'idToken required' });
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    const googleId = payload.sub;
+    const email    = payload.email || null;
+    const name     = payload.name  || email?.split('@')[0] || 'Harmoni User';
+    const picture  = payload.picture || null;
+
+    let user = await User.findOne({ googleId });
+
+    if (!user) {
+      if (email) {
+        user = await User.findOne({ email });
+      }
+
+      if (user) {
+        user.googleId = googleId;
+        if (picture && !user.profilePicture) user.profilePicture = picture;
+      } else {
+        user = new User({ displayName: name, email, googleId, profilePicture: picture });
+      }
+
+      await user.save();
+    }
+
+    const token = signToken(user._id);
+    res.json({ token, isNewUser: !user.profileComplete });
+  } catch (err) {
+    console.error('Google auth error:', err);
+    res.status(401).json({ error: 'Invalid Google token' });
   }
 });
 
