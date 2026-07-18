@@ -1,0 +1,16 @@
+@base = https://api.harmoni.cc
+
+### First run the login request in auth.http and copy the token below
+@token = PASTE_TOKEN_HERE
+
+### Search artists
+GET {{base}}/music/search?q=radiohead
+Authorization: Bearer {{token}}
+
+###
+
+### Get artist top tracks
+GET {{base}}/music/artist/137057909/tracks
+Authorization: Bearer {{token}}
+
+###

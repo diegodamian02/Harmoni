@@ -13,12 +13,10 @@ type User = {
   phone?: string | null;
   musicProfile?: {
     genres: string[];
-    artists: unknown[];
-    tracks: unknown[];
+    artists: { artistRef: string; rank: number }[];
+    tracks: { itunesId: string; name: string; previewUrl?: string; artworkUrl?: string }[];
     profileReady: boolean;
   };
-  topArtistNames: string[];
-  topTrackNames: string[];
 };
 
 type AuthState = {

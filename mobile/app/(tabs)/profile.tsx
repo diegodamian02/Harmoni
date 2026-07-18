@@ -45,28 +45,28 @@ export default function ProfileScreen() {
         <Text style={styles.name}>{user.displayName}</Text>
         <Text style={styles.email}>{user.email}</Text>
 
-        {/* Top Artists */}
-        {user.topArtistNames.length > 0 && (
+        {/* Genres */}
+        {(user.musicProfile?.genres?.length ?? 0) > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Top Artists</Text>
+            <Text style={styles.sectionTitle}>Genres</Text>
             <View style={styles.chipRow}>
-              {user.topArtistNames.slice(0, 5).map((a) => (
-                <View key={a} style={styles.chip}>
-                  <Text style={styles.chipText}>🎵 {a}</Text>
+              {user.musicProfile!.genres.map((g) => (
+                <View key={g} style={styles.chip}>
+                  <Text style={styles.chipText}>🎵 {g}</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Top Tracks */}
-        {user.topTrackNames.length > 0 && (
+        {/* Tracks */}
+        {(user.musicProfile?.tracks?.length ?? 0) > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Top Tracks</Text>
+            <Text style={styles.sectionTitle}>Favorite Tracks</Text>
             <View style={styles.chipRow}>
-              {user.topTrackNames.slice(0, 5).map((t) => (
-                <View key={t} style={[styles.chip, styles.trackChip]}>
-                  <Text style={styles.chipText}>🎶 {t}</Text>
+              {user.musicProfile!.tracks.slice(0, 5).map((t) => (
+                <View key={t.itunesId} style={[styles.chip, styles.trackChip]}>
+                  <Text style={styles.chipText}>🎶 {t.name}</Text>
                 </View>
               ))}
             </View>

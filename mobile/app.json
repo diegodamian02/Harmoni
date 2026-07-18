@@ -9,7 +9,7 @@
     "scheme": "harmoni",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.harmoni.app",
+      "bundleIdentifier": "com.diegodamian.harmoni",
       "usesAppleSignIn": true
     },
     "android": {

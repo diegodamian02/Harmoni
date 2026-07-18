@@ -78,7 +78,7 @@ router.post('/apple', authLimiter, async (req, res) => {
   try {
     console.log('[Apple] verifying token with apple-signin-auth...');
     const appleUser = await appleSignin.verifyIdToken(identityToken, {
-      audience: 'com.harmoni.app',
+      audience: process.env.APPLE_BUNDLE_ID ?? 'com.diegodamian.harmoni',
       ignoreExpiration: false,
     });
     console.log('[Apple] token verified — sub:', appleUser.sub, 'email:', appleUser.email);

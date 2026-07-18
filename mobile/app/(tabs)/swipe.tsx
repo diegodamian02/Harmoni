@@ -26,7 +26,7 @@ type MatchUser = {
   profilePicture?: string;
   photos?: string[];
   bio?: string;
-  topArtistNames: string[];
+  musicProfile?: { genres?: string[] };
   similarityScore: number;
 };
 
@@ -146,9 +146,9 @@ export default function SwipeScreen() {
             </Text>
             {current.bio ? <Text style={styles.cardBio} numberOfLines={2}>{current.bio}</Text> : null}
             <View style={styles.artistChips}>
-              {current.topArtistNames.slice(0, 3).map((a) => (
-                <View key={a} style={styles.chip}>
-                  <Text style={styles.chipText}>🎵 {a}</Text>
+              {(current.musicProfile?.genres ?? []).slice(0, 3).map((g) => (
+                <View key={g} style={styles.chip}>
+                  <Text style={styles.chipText}>🎵 {g}</Text>
                 </View>
               ))}
             </View>

@@ -1,0 +1,39 @@
+@base = https://api.harmoni.cc
+
+### Root health check
+GET {{base}}/
+
+###
+
+### Register new user
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@dummy.com",
+  "password": "HarmoniTest2026!"
+}
+
+###
+
+### Login (dummy user)
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "maya@dummy.com",
+  "password": "HarmoniTest2026!"
+}
+
+###
+
+### Login — store token for other requests
+@token = {{login.response.body.token}}
+
+### Get my profile (requires token from login above)
+GET {{base}}/user/profile
+Authorization: Bearer {{token}}
+
+###
