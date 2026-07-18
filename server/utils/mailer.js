@@ -1,23 +1,17 @@
 const { Resend } = require('resend');
-const fs = require('fs');
-const path = require('path');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const template = fs.readFileSync(
-  path.join(__dirname, '../templates/launch-invite.html'), 'utf8'
-);
 
-async function sendLaunchInvite(toEmail) {
+async function sendWaitlistConfirmation(toEmail) {
   return resend.emails.send({
     from: 'Harmoni <hello@harmoni.cc>',
     to: toEmail,
     reply_to: 'diegodamiango02@gmail.com',
     subject: '🎵 You are on the waitlist of something awesome!',
-    html: template,
+    template_id: process.env.RESEND_TEMPLATE_ID,
   });
 }
 
-// Called immediately when someone joins the waitlist
-const sendWaitlistConfirmation = sendLaunchInvite;
+const sendLaunchInvite = sendWaitlistConfirmation;
 
 module.exports = { sendLaunchInvite, sendWaitlistConfirmation };
