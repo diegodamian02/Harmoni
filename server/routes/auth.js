@@ -128,10 +128,13 @@ router.post('/google', authLimiter, async (req, res) => {
   if (!idToken) return res.status(400).json({ error: 'idToken required' });
 
   try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    const audience = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+    ].filter(Boolean);
+
+    console.log('[Google] verifying token, accepted audiences:', audience);
+    const ticket = await googleClient.verifyIdToken({ idToken, audience });
     const payload = ticket.getPayload();
 
     const googleId = payload.sub;
@@ -159,8 +162,8 @@ router.post('/google', authLimiter, async (req, res) => {
     const token = signToken(user._id);
     res.json({ token, isNewUser: !user.profileComplete });
   } catch (err) {
-    console.error('Google auth error:', err);
-    res.status(401).json({ error: 'Invalid Google token' });
+    console.error('[Google] token verification failed:', err.message);
+    res.status(401).json({ error: 'Invalid Google token', detail: err.message });
   }
 });
 

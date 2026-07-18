@@ -36,6 +36,16 @@
         {
           "photosPermission": "Harmoni uses your photos to set up your profile."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildSettings": {
+              "ENABLE_USER_SCRIPT_SANDBOXING": "NO"
+            }
+          }
+        }
       ]
     ],
     "experiments": {

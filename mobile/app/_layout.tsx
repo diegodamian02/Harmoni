@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { SplashAnimation } from '../src/components/SplashAnimation';
 import { Colors } from '../src/theme/colors';
 
 console.log('[Layout] module loaded');
@@ -81,6 +82,8 @@ export default function RootLayout() {
     }
   }, [ready]);
 
+  const [splashDone, setSplashDone] = useState(false);
+
   if (!ready) {
     console.log('[RootLayout] waiting for fonts...');
     return <View style={{ flex: 1, backgroundColor: Colors.bgDark }} />;
@@ -88,7 +91,10 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootGuard />
+      <>
+        <RootGuard />
+        {!splashDone && <SplashAnimation onFinish={() => setSplashDone(true)} />}
+      </>
     </AuthProvider>
   );
 }
