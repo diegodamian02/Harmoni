@@ -17,4 +17,7 @@ async function sendLaunchInvite(toEmail) {
   });
 }
 
-module.exports = { sendLaunchInvite };
+// Called immediately when someone joins the waitlist
+const sendWaitlistConfirmation = sendLaunchInvite;
+
+module.exports = { sendLaunchInvite, sendWaitlistConfirmation };
