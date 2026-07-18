@@ -66,24 +66,33 @@ router.post('/login', authLimiter, async (req, res) => {
 // Body: { identityToken, fullName? }
 // Apple only sends name on the FIRST sign-in — store it then, ignore absence later
 router.post('/apple', authLimiter, async (req, res) => {
+  console.log('[Apple] request received');
   const { identityToken, fullName } = req.body;
-  if (!identityToken) return res.status(400).json({ error: 'identityToken required' });
+
+  if (!identityToken) {
+    console.log('[Apple] missing identityToken');
+    return res.status(400).json({ error: 'identityToken required' });
+  }
+  console.log('[Apple] identityToken present, length:', identityToken.length);
 
   try {
+    console.log('[Apple] verifying token with apple-signin-auth...');
     const appleUser = await appleSignin.verifyIdToken(identityToken, {
       audience: 'com.harmoni.app',
       ignoreExpiration: false,
     });
+    console.log('[Apple] token verified — sub:', appleUser.sub, 'email:', appleUser.email);
 
     const appleId = appleUser.sub;
     const email   = appleUser.email || null;
 
     let user = await User.findOne({ appleId });
+    console.log('[Apple] existing user by appleId:', !!user);
 
     if (!user) {
-      // New user — try to merge with an existing email account
       if (email) {
         user = await User.findOne({ email });
+        console.log('[Apple] existing user by email:', !!user);
       }
 
       if (user) {
@@ -94,17 +103,21 @@ router.post('/apple', authLimiter, async (req, res) => {
             ? `${fullName.givenName} ${fullName.familyName || ''}`.trim()
             : email?.split('@')[0] || 'Harmoni User';
 
+        console.log('[Apple] creating new user, displayName:', displayName);
         user = new User({ displayName, email, appleId });
       }
 
       await user.save();
+      console.log('[Apple] user saved, id:', user._id);
     }
 
     const token = signToken(user._id);
+    console.log('[Apple] success — responding with token');
     res.json({ token, isNewUser: !user.profileComplete });
   } catch (err) {
-    console.error('Apple auth error:', err);
-    res.status(401).json({ error: 'Invalid Apple token' });
+    console.error('[Apple] error:', err.message);
+    console.error('[Apple] full error:', err);
+    res.status(401).json({ error: 'Invalid Apple token', detail: err.message });
   }
 });
 

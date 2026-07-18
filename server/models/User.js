@@ -30,8 +30,11 @@ const userSchema = new mongoose.Schema({
   profilePicture:  { type: String },
 
   profileComplete: { type: Boolean, default: false },
+  birthday:        { type: Date },
   age:             { type: Number },
-  gender:          { type: String },
+  gender:          { type: String, enum: ['Man', 'Woman', 'Other'] },
+  interestedIn:    { type: String, enum: ['Men', 'Women', 'Everyone'] },
+  phone:           { type: String, default: null },
   bio:             { type: String, default: '' },
   photos:          [{ type: String }],
 

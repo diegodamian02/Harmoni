@@ -43,6 +43,65 @@ exports.completeProfile = async (req, res) => {
   }
 };
 
+exports.saveBasicInfo = async (req, res) => {
+  const { name, birthday, gender, interestedIn, phone } = req.body;
+
+  if (!name || !birthday || !gender || !interestedIn) {
+    return res.status(400).json({ error: 'Name, birthday, gender, and interest are required' });
+  }
+
+  const age = Math.floor((Date.now() - new Date(birthday)) / (365.25 * 24 * 60 * 60 * 1000));
+  if (age < 18) return res.status(400).json({ error: 'You must be 18 or older to use Harmoni' });
+
+  try {
+    console.log('[basicInfo] saving for user', req.user._id);
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { displayName: name.trim(), birthday: new Date(birthday), age, gender, interestedIn, phone: phone || null },
+      { new: true }
+    ).select('-passwordHash');
+    console.log('[basicInfo] saved OK');
+    res.json({ user });
+  } catch (err) {
+    console.error('[basicInfo] error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// TODO: remove before launch — temporary endpoint that marks profile complete
+// so the swipe screen is reachable while music + photo onboarding is being built
+exports.markProfileComplete = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { profileComplete: true },
+      { new: true }
+    ).select('-passwordHash');
+    res.json({ user });
+  } catch (err) {
+    console.error('[markComplete] error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.saveMusicGenres = async (req, res) => {
+  const { genres } = req.body;
+  if (!Array.isArray(genres) || genres.length !== 3) {
+    return res.status(400).json({ error: 'Exactly 3 genres required' });
+  }
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { 'musicProfile.genres': genres },
+      { new: true }
+    ).select('-passwordHash');
+    res.json({ user });
+  } catch (err) {
+    console.error('[saveMusicGenres] error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 exports.updateSpotifyData = async (req, res) => {
   const { topArtists, topTracks, topGenres } = req.body;
   try {
