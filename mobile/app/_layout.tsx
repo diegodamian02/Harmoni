@@ -33,11 +33,14 @@ function RootGuard() {
   useEffect(() => {
     if (loading) return;
     const inAuth = segments[0] === '(auth)';
+    const onProfileSetup = segments[1] === 'profile-setup';
+    // profile-setup requires auth even though it lives inside (auth) group
+    const onPublicScreen = inAuth && !onProfileSetup;
 
-    if (!user && !inAuth) {
+    if (!user && !onPublicScreen) {
       console.log('[RootGuard] → landing');
       router.replace('/(auth)/landing');
-    } else if (user && !user.profileComplete && !inAuth) {
+    } else if (user && !user.profileComplete && !onProfileSetup) {
       console.log('[RootGuard] → profile-setup');
       router.replace('/(auth)/profile-setup');
     } else if (user && user.profileComplete && inAuth) {

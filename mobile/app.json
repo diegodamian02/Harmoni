@@ -9,7 +9,8 @@
     "scheme": "harmoni",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.harmoni.app"
+      "bundleIdentifier": "com.harmoni.app",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -29,6 +30,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {

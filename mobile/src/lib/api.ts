@@ -1,8 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = __DEV__
-  ? 'http://172.16.226.90:8333'
-  : 'https://api.harmoni.cc';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ??
+  (__DEV__ ? 'http://localhost:8333' : 'https://api.harmoni.cc');
+
+console.log('[api] BASE_URL:', BASE_URL);
 
 const TOKEN_KEY = 'harmoni_jwt';
 
@@ -18,10 +19,7 @@ export async function clearToken(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -34,7 +32,12 @@ async function request<T>(
 
   let res: Response;
   try {
+    console.log('[api] →', options.method ?? 'GET', `${BASE_URL}${path}`);
     res = await fetch(`${BASE_URL}${path}`, { ...options, headers, signal: controller.signal });
+    console.log('[api] ←', res.status, `${BASE_URL}${path}`);
+  } catch (err: any) {
+    console.error('[api] fetch error:', err?.name, err?.message);
+    throw new Error(err?.name === 'AbortError' ? 'Request timed out — is the server running?' : err?.message ?? 'Network error');
   } finally {
     clearTimeout(timeout);
   }
@@ -48,10 +51,8 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  get:    <T>(path: string) => request<T>(path),
+  post:   <T>(path: string, body: unknown) => request<T>(path, { method: 'POST',   body: JSON.stringify(body) }),
+  patch:  <T>(path: string, body: unknown) => request<T>(path, { method: 'PATCH',  body: JSON.stringify(body) }),
+  delete: <T>(path: string)                => request<T>(path, { method: 'DELETE' }),
 };

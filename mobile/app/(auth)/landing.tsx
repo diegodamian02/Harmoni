@@ -1,56 +1,64 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { GoogleButton } from '../../src/components/GoogleButton';
 import { GradientButton } from '../../src/components/GradientButton';
-import { SpotifyButton } from '../../src/components/SpotifyButton';
+import { useAppleAuth } from '../../src/hooks/useAppleAuth';
+import { useGoogleAuth } from '../../src/hooks/useGoogleAuth';
 import { Colors } from '../../src/theme/colors';
 import { FontFamily, FontSize } from '../../src/theme/typography';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const BACKEND_URL = __DEV__ ? 'http://localhost:8333' : 'https://your-production-url.railway.app';
-
 export default function LandingScreen() {
   const router = useRouter();
   const [showOptions, setShowOptions] = useState(false);
+  const [error, setError] = useState('');
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const { signIn: appleSignIn } = useAppleAuth();
+  const { promptAsync, ready: googleReady } = useGoogleAuth();
 
   const toggleOptions = () => {
     const toValue = showOptions ? 0 : 1;
     setShowOptions(!showOptions);
-    Animated.spring(slideAnim, {
-      toValue,
-      useNativeDriver: true,
-      tension: 60,
-      friction: 10,
-    }).start();
+    Animated.spring(slideAnim, { toValue, useNativeDriver: true, tension: 60, friction: 10 }).start();
   };
 
-  const handleSpotifySignup = () => {
-    WebBrowser.openBrowserAsync(`${BACKEND_URL}/auth/spotify`);
+  const handleApple = async () => {
+    setError('');
+    try {
+      await appleSignIn();
+    } catch (e: any) {
+      if (e.code !== 'ERR_CANCELED') setError(e.message ?? 'Apple sign in failed');
+    }
   };
 
-  const sheetTranslate = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [300, 0],
-  });
-  const sheetOpacity = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
+  const handleGoogle = async () => {
+    setError('');
+    try {
+      await promptAsync();
+    } catch (e: any) {
+      setError(e.message ?? 'Google sign in failed');
+    }
+  };
+
+  const sheetTranslate = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] });
+  const sheetOpacity  = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
   return (
     <SafeAreaView style={styles.screen}>
-      {/* Background gradient overlay at top */}
       <LinearGradient
         colors={['rgba(115,16,90,0.3)', 'transparent']}
         style={styles.topGlow}
@@ -60,26 +68,37 @@ export default function LandingScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Harmoni</Text>
         <Text style={styles.subtitle}>The dating app for music lovers</Text>
-
         <GradientButton label="Get Started" onPress={toggleOptions} />
       </View>
 
-      {/* Slide-up options sheet */}
       {showOptions && (
         <Animated.View
-          style={[
-            styles.sheet,
-            { transform: [{ translateY: sheetTranslate }], opacity: sheetOpacity },
-          ]}
+          style={[styles.sheet, { transform: [{ translateY: sheetTranslate }], opacity: sheetOpacity }]}
         >
-          <Text style={styles.sheetTitle}>Select a Sign-Up Method</Text>
+          <Text style={styles.sheetTitle}>Create an account</Text>
 
-          <SpotifyButton label="Sign Up with Spotify" onPress={handleSpotifySignup} />
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={50}
+              style={styles.appleBtn}
+              onPress={handleApple}
+            />
+          )}
+
+          <GoogleButton
+            label="Sign up with Google"
+            onPress={handleGoogle}
+            disabled={!googleReady}
+          />
 
           <GradientButton
-            label="Sign Up with Email"
+            label="Sign up with Email"
             onPress={() => router.push('/(auth)/signup')}
           />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.divider} />
 
@@ -130,7 +149,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingTop: 28,
+    paddingBottom: 36,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -141,8 +161,20 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: FontSize.lg,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+    color: Colors.textDark,
     marginBottom: 8,
+  },
+  appleBtn: {
+    width: '90%',
+    height: 48,
+    marginTop: 12,
+  },
+  error: {
+    color: Colors.dislike,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    marginTop: 8,
+    textAlign: 'center',
   },
   divider: {
     width: '80%',

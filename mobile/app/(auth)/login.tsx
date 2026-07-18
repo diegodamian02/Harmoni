@@ -1,6 +1,7 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import {
   Keyboard,
@@ -8,20 +9,23 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { GoogleButton } from '../../src/components/GoogleButton';
 import { GradientButton } from '../../src/components/GradientButton';
-import { SpotifyButton } from '../../src/components/SpotifyButton';
 import { TextInput } from '../../src/components/TextInput';
 import { useAuth } from '../../src/context/AuthContext';
-import { api, saveToken } from '../../src/lib/api';
+import { useAppleAuth } from '../../src/hooks/useAppleAuth';
+import { useGoogleAuth } from '../../src/hooks/useGoogleAuth';
+import { api } from '../../src/lib/api';
 import { Colors } from '../../src/theme/colors';
 import { FontFamily, FontSize } from '../../src/theme/typography';
 
-const BACKEND_URL = __DEV__ ? 'http://localhost:8333' : 'https://your-production-url.railway.app';
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,6 +34,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const { signIn: appleSignIn } = useAppleAuth();
+  const { promptAsync, ready: googleReady } = useGoogleAuth();
 
   const handleLogin = async () => {
     if (!email || !password) return;
@@ -45,8 +52,22 @@ export default function LoginScreen() {
     }
   };
 
-  const handleSpotifyLogin = () => {
-    WebBrowser.openBrowserAsync(`${BACKEND_URL}/auth/spotify`);
+  const handleApple = async () => {
+    setError('');
+    try {
+      await appleSignIn();
+    } catch (e: any) {
+      if (e.code !== 'ERR_CANCELED') setError(e.message ?? 'Apple sign in failed');
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError('');
+    try {
+      await promptAsync();
+    } catch (e: any) {
+      setError(e.message ?? 'Google sign in failed');
+    }
   };
 
   return (
@@ -67,40 +88,64 @@ export default function LoginScreen() {
             <Text style={styles.backArrow}>‹</Text>
           </Pressable>
 
-          <View style={styles.card}>
-            <Text style={styles.title}>Log In</Text>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.card}>
+              <Text style={styles.title}>Log In</Text>
 
-            <TextInput
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <GradientButton
-              label={loading ? 'Logging in...' : 'Log In'}
-              onPress={handleLogin}
-              disabled={loading}
-            />
+              <GradientButton
+                label={loading ? 'Logging in…' : 'Log In'}
+                onPress={handleLogin}
+                disabled={loading}
+              />
 
-            <View style={styles.divider} />
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-            <SpotifyButton label="Log In with Spotify" onPress={handleSpotifyLogin} />
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={50}
+                  style={styles.appleBtn}
+                  onPress={handleApple}
+                />
+              )}
 
-            <Pressable onPress={() => router.push('/(auth)/signup')} style={styles.switchRow}>
-              <Text style={styles.switchText}>Don't have an account? </Text>
-              <Text style={styles.switchLink}>Sign Up</Text>
-            </Pressable>
-          </View>
+              <GoogleButton
+                label="Log in with Google"
+                onPress={handleGoogle}
+                disabled={!googleReady}
+              />
+
+              <Pressable onPress={() => router.push('/(auth)/signup')} style={styles.switchRow}>
+                <Text style={styles.switchText}>Don't have an account? </Text>
+                <Text style={styles.switchLink}>Sign Up</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
@@ -108,20 +153,21 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  inner: {
-    flex: 1,
+  screen: { flex: 1 },
+  inner:  { flex: 1 },
+  scroll: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 60,
   },
   backRow: {
     position: 'absolute',
     top: 16,
     left: 24,
     padding: 8,
+    zIndex: 10,
   },
   backArrow: {
     fontSize: 36,
@@ -155,14 +201,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   divider: {
-    width: '80%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    marginVertical: 16,
+    gap: 8,
+  },
+  dividerLine: {
+    flex: 1,
     height: 1,
     backgroundColor: Colors.divider,
-    marginVertical: 16,
+  },
+  dividerText: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.textSecondary,
+  },
+  appleBtn: {
+    width: '90%',
+    height: 48,
+    marginTop: 0,
   },
   switchRow: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: 20,
   },
   switchText: {
     fontSize: FontSize.sm,

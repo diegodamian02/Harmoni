@@ -7,6 +7,16 @@ type User = {
   email: string;
   profilePicture?: string;
   profileComplete: boolean;
+  birthday?: string;
+  gender?: string;
+  interestedIn?: string;
+  phone?: string | null;
+  musicProfile?: {
+    genres: string[];
+    artists: unknown[];
+    tracks: unknown[];
+    profileReady: boolean;
+  };
   topArtistNames: string[];
   topTrackNames: string[];
 };
