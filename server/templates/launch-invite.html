@@ -6,37 +6,40 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Harmoni — You're in</title>
   <style>
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scaleY(1); }
+      50%       { opacity: 0.35; transform: scaleY(0.45); }
+    }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+
     @media only screen and (max-width: 600px) {
       .email-wrapper { width: 100% !important; }
-      .card-body    { padding: 28px 20px 36px !important; }
-      .logo-text    { font-size: 42px !important; }
-      .headline     { font-size: 24px !important; }
-      .album-cell   { padding: 0 3px !important; }
-      .album-img    { width: 54px !important; height: 54px !important; }
+      .card-body     { padding: 28px 20px 36px !important; }
+      .logo-text     { font-size: 40px !important; }
+      .headline      { font-size: 24px !important; }
+      .album-cell    { padding: 0 3px !important; }
+      .album-tile    { width: 52px !important; height: 52px !important; }
     }
   </style>
 </head>
 <body style="margin:0;padding:0;background-color:#111113;" bgcolor="#111113">
 
-  <!-- preheader -->
   <div style="display:none;max-height:0;overflow:hidden;color:#111113;font-size:1px;">
     Your perfect musical match is waiting — Harmoni is officially here 🎵
   </div>
 
-  <!-- page wrapper -->
+  <!-- page -->
   <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#111113" style="background-color:#111113;">
     <tr>
       <td align="center" bgcolor="#111113" style="background-color:#111113;padding:40px 16px 60px;">
 
-        <!-- gradient-border card (outer) -->
+        <!-- gradient border card -->
         <table class="email-wrapper" role="presentation" width="580" border="0" cellpadding="0" cellspacing="0" style="max-width:580px;width:580px;">
           <tr>
             <td style="background:linear-gradient(160deg,#FF69B4 0%,#73105A 100%);border-radius:20px;padding:2px;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#1C1C1E" style="background-color:#1C1C1E;border-radius:18px;">
 
-              <!-- card inner -->
-              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#1C1C1E" style="background-color:#1C1C1E;border-radius:18px;overflow:hidden;">
-
-                <!-- top gradient bar -->
+                <!-- top bar -->
                 <tr>
                   <td height="4" style="background:linear-gradient(90deg,#FF69B4,#73105A);line-height:4px;font-size:4px;">&nbsp;</td>
                 </tr>
@@ -46,59 +49,33 @@
                   <td class="card-body" align="center" bgcolor="#1C1C1E" style="background-color:#1C1C1E;padding:44px 48px 52px;">
 
                     <!-- logo -->
-                    <p style="margin:0 0 8px;font-size:52px;font-weight:800;letter-spacing:-1px;color:#F5F5F5;line-height:1;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
+                    <p class="logo-text" style="margin:0 0 8px;font-size:52px;font-weight:800;letter-spacing:-1px;color:#F5F5F5;line-height:1;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
                       Harmoni
                     </p>
 
-                    <!-- underline rule -->
+                    <!-- underline -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto 36px;">
                       <tr>
                         <td width="180" height="3" style="background:linear-gradient(90deg,#FF69B4,#73105A);border-radius:2px;line-height:3px;font-size:3px;">&nbsp;</td>
                       </tr>
                     </table>
 
-                    <!-- static waveform -->
+                    <!-- animated waveform -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto 36px;">
                       <tr style="vertical-align:bottom;">
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:20px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:34px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:26px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:44px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:38px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:48px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:32px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:42px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:28px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:38px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:22px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:36px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
-                        <td width="9" style="vertical-align:bottom;padding:0 2px;">
-                          <div style="width:5px;height:18px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;"></div>
-                        </td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:20px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.00s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:34px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.10s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:26px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.20s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:44px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.30s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:38px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.15s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:48px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.25s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:32px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.05s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:42px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.35s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:28px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.20s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:38px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.10s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:22px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.30s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:36px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.00s infinite;"></div></td>
+                        <td width="9" style="vertical-align:bottom;padding:0 2px;"><div style="width:5px;height:18px;background:linear-gradient(to top,#73105A,#FF69B4);border-radius:3px;animation:pulse 1.4s ease-in-out 0.15s infinite;"></div></td>
                       </tr>
                     </table>
 
@@ -112,23 +89,23 @@
                       The wait is over.<br />Your match is waiting.
                     </h1>
 
-                    <!-- body text -->
+                    <!-- body -->
                     <p style="margin:0 auto 36px;font-size:16px;line-height:1.7;color:#AAAAAA;max-width:420px;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
                       Harmoni connects you with the people behind the tracks. Build your sound profile, get matched by the artists you actually <strong style="color:#E0E0E0;font-weight:600;">obsess over</strong>, and find your rhythm with someone who gets it.
                     </p>
 
-                    <!-- album covers -->
+                    <!-- artist tiles (CSS only, no external images) -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto 40px;">
                       <tr>
                         <!-- Oasis -->
                         <td class="album-cell" align="center" style="padding:0 6px;">
                           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td style="border-radius:8px;overflow:hidden;background-color:#1a6fc4;" bgcolor="#1a6fc4">
-                                <img class="album-img"
-                                  src="https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/51/7b/33/517b3316-9c15-1b6c-20b4-420b44dc6ba0/00602537424481.rgb.jpg/600x600bb.jpg"
-                                  width="72" height="72" alt="Oasis"
-                                  style="display:block;width:72px;height:72px;border-radius:8px;" />
+                              <td class="album-tile" width="72" height="72" align="center" valign="middle"
+                                style="width:72px;height:72px;border-radius:8px;background:linear-gradient(145deg,#0d3d6e 0%,#1a6fc4 50%,#5aa8e0 100%);">
+                                <p style="margin:0;color:rgba(255,255,255,0.95);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;line-height:1.3;">
+                                  Oasis
+                                </p>
                               </td>
                             </tr>
                             <tr>
@@ -142,11 +119,11 @@
                         <td class="album-cell" align="center" style="padding:0 6px;">
                           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td style="border-radius:8px;overflow:hidden;background-color:#5C3D1E;" bgcolor="#5C3D1E">
-                                <img class="album-img"
-                                  src="https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/4e/43/27/4e432717-3af3-4cf7-6e49-e7e8d9e1adc9/196872428521.jpg/600x600bb.jpg"
-                                  width="72" height="72" alt="Noah Kahan"
-                                  style="display:block;width:72px;height:72px;border-radius:8px;" />
+                              <td class="album-tile" width="72" height="72" align="center" valign="middle"
+                                style="width:72px;height:72px;border-radius:8px;background:linear-gradient(145deg,#3b2008 0%,#7a4d20 50%,#c49a5a 100%);">
+                                <p style="margin:0;color:rgba(255,255,255,0.95);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;line-height:1.3;">
+                                  Noah<br/>Kahan
+                                </p>
                               </td>
                             </tr>
                             <tr>
@@ -160,11 +137,11 @@
                         <td class="album-cell" align="center" style="padding:0 6px;">
                           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td style="border-radius:8px;overflow:hidden;background-color:#0a0a14;" bgcolor="#0a0a14">
-                                <img class="album-img"
-                                  src="https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/05/05/44/050544d1-f768-7038-f921-21e9fe878e0a/21UMGIM12126.rgb.jpg/600x600bb.jpg"
-                                  width="72" height="72" alt="Drake"
-                                  style="display:block;width:72px;height:72px;border-radius:8px;" />
+                              <td class="album-tile" width="72" height="72" align="center" valign="middle"
+                                style="width:72px;height:72px;border-radius:8px;background:linear-gradient(145deg,#08080f 0%,#1a2a38 50%,#c5a028 100%);">
+                                <p style="margin:0;color:rgba(255,255,255,0.95);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;line-height:1.3;">
+                                  Drake
+                                </p>
                               </td>
                             </tr>
                             <tr>
@@ -178,11 +155,11 @@
                         <td class="album-cell" align="center" style="padding:0 6px;">
                           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td style="border-radius:8px;overflow:hidden;background-color:#6B0000;" bgcolor="#6B0000">
-                                <img class="album-img"
-                                  src="https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/5b/d8/d2/5bd8d272-71fb-6af3-a538-5a9a1b2c75b3/20UMGIM42529.rgb.jpg/600x600bb.jpg"
-                                  width="72" height="72" alt="The Weeknd"
-                                  style="display:block;width:72px;height:72px;border-radius:8px;" />
+                              <td class="album-tile" width="72" height="72" align="center" valign="middle"
+                                style="width:72px;height:72px;border-radius:8px;background:linear-gradient(145deg,#0f0000 0%,#5a0000 50%,#c00000 100%);">
+                                <p style="margin:0;color:rgba(255,255,255,0.95);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;line-height:1.3;">
+                                  The<br/>Weeknd
+                                </p>
                               </td>
                             </tr>
                             <tr>
@@ -196,11 +173,11 @@
                         <td class="album-cell" align="center" style="padding:0 6px;">
                           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td style="border-radius:8px;overflow:hidden;background-color:#1a4a2a;" bgcolor="#1a4a2a">
-                                <img class="album-img"
-                                  src="https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/e5/91/54/e5915409-e293-a7f2-1b17-c04ce3b4b4de/22UMGIM71184.rgb.jpg/600x600bb.jpg"
-                                  width="72" height="72" alt="Bad Bunny"
-                                  style="display:block;width:72px;height:72px;border-radius:8px;" />
+                              <td class="album-tile" width="72" height="72" align="center" valign="middle"
+                                style="width:72px;height:72px;border-radius:8px;background:linear-gradient(145deg,#0d2e18 0%,#1e6b3a 50%,#5ebf85 100%);">
+                                <p style="margin:0;color:rgba(255,255,255,0.95);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;line-height:1.3;">
+                                  Bad<br/>Bunny
+                                </p>
                               </td>
                             </tr>
                             <tr>
@@ -213,7 +190,7 @@
                       </tr>
                     </table>
 
-                    <!-- CTA button -->
+                    <!-- CTA -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto 14px;">
                       <tr>
                         <td style="border-radius:50px;background:linear-gradient(90deg,#FF69B4,#73105A);">
