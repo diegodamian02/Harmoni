@@ -70,5 +70,6 @@ export function useGoogleAuth() {
     handleAuth();
   }, [response]);
 
+  console.log('[Google] redirectUri:', request?.redirectUri);
   return { promptAsync, ready: !!request };
 }

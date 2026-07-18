@@ -1,0 +1,274 @@
+<title>Harmoni — You're in 🎵</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111113;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    color: #F5F5F5;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 16px 60px;
+  }
+
+  .wrapper {
+    max-width: 580px;
+    margin: 0 auto;
+  }
+
+  /* Gradient border card */
+  .card-outer {
+    background: linear-gradient(160deg, #FF69B4 0%, #73105A 100%);
+    border-radius: 20px;
+    padding: 2px;
+  }
+  .card {
+    background: #1C1C1E;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  /* Top decorative band */
+  .band {
+    height: 4px;
+    background: linear-gradient(90deg, #FF69B4, #73105A);
+  }
+
+  .card-body {
+    padding: 44px 48px 52px;
+    text-align: center;
+  }
+
+  /* Logo */
+  .logo {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #F5F5F5;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .logo-rule {
+    width: 180px;
+    height: 3px;
+    background: linear-gradient(90deg, #FF69B4, #73105A);
+    border-radius: 2px;
+    margin: 0 auto 36px;
+  }
+
+  /* Waveform */
+  .wave {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4px;
+    height: 48px;
+    margin-bottom: 36px;
+  }
+  .wave span {
+    display: inline-block;
+    width: 5px;
+    border-radius: 3px;
+    background: linear-gradient(to top, #73105A, #FF69B4);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .wave span:nth-child(1)  { height: 20px; animation-delay: 0.0s; }
+  .wave span:nth-child(2)  { height: 34px; animation-delay: 0.1s; }
+  .wave span:nth-child(3)  { height: 26px; animation-delay: 0.2s; }
+  .wave span:nth-child(4)  { height: 44px; animation-delay: 0.3s; }
+  .wave span:nth-child(5)  { height: 38px; animation-delay: 0.15s; }
+  .wave span:nth-child(6)  { height: 48px; animation-delay: 0.25s; }
+  .wave span:nth-child(7)  { height: 32px; animation-delay: 0.05s; }
+  .wave span:nth-child(8)  { height: 42px; animation-delay: 0.35s; }
+  .wave span:nth-child(9)  { height: 28px; animation-delay: 0.2s; }
+  .wave span:nth-child(10) { height: 38px; animation-delay: 0.1s; }
+  .wave span:nth-child(11) { height: 22px; animation-delay: 0.3s; }
+  .wave span:nth-child(12) { height: 36px; animation-delay: 0.0s; }
+  .wave span:nth-child(13) { height: 18px; animation-delay: 0.15s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scaleY(1); }
+    50%       { opacity: 0.4; transform: scaleY(0.5); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wave span { animation: none; }
+  }
+
+  /* Headline */
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #FF69B4;
+    margin-bottom: 12px;
+  }
+  .headline {
+    font-size: 30px;
+    font-weight: 700;
+    color: #F5F5F5;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+    margin-bottom: 18px;
+  }
+  .body-text {
+    font-size: 16px;
+    line-height: 1.7;
+    color: #AAAAAA;
+    max-width: 420px;
+    margin: 0 auto 36px;
+  }
+  .body-text strong {
+    color: #E0E0E0;
+    font-weight: 600;
+  }
+
+  /* CTA */
+  .cta {
+    display: inline-block;
+    background: linear-gradient(90deg, #FF69B4, #73105A);
+    color: #fff !important;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 16px 48px;
+    border-radius: 50px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 24px rgba(255, 105, 180, 0.35);
+    transition: opacity 0.2s;
+  }
+  .cta:hover { opacity: 0.88; }
+  .cta-sub {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 0;
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid #2E2E30;
+    margin: 40px 0 32px;
+  }
+
+  /* Album covers */
+  .albums {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  .album {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+  }
+  .album img {
+    width: 72px;
+    height: 72px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    display: block;
+  }
+  .album-label {
+    font-size: 11px;
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 0 48px 40px;
+    text-align: center;
+  }
+  .footer p {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 6px;
+  }
+  .footer a {
+    color: #FF69B4;
+    text-decoration: none;
+  }
+
+  /* Preheader (hidden in email) */
+  .preheader {
+    display: none;
+    max-height: 0;
+    overflow: hidden;
+    font-size: 1px;
+    color: #111113;
+  }
+</style>
+
+<!-- Hidden preheader text for email clients -->
+<span class="preheader">Your perfect musical match is waiting — Harmoni is officially here 🎵</span>
+
+<div class="wrapper">
+  <div class="card-outer">
+    <div class="card">
+      <div class="band"></div>
+
+      <div class="card-body">
+        <!-- Logo -->
+        <div class="logo">Harmoni</div>
+        <div class="logo-rule"></div>
+
+        <!-- Animated waveform -->
+        <div class="wave" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+
+        <!-- Headline copy -->
+        <p class="eyebrow">You're on the list</p>
+        <h1 class="headline">The wait is over.<br>Your match is waiting.</h1>
+        <p class="body-text">
+          Harmoni connects you with the people behind the tracks. Build your sound profile, get matched by the artists you actually <strong>obsess over</strong>, and find your rhythm with someone who gets it.
+        </p>
+
+        <!-- Album covers -->
+        <div class="albums">
+          <div class="album">
+            <img src="https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/51/7b/33/517b3316-9c15-1b6c-20b4-420b44dc6ba0/00602537424481.rgb.jpg/600x600bb.jpg" alt="Oasis" />
+            <span class="album-label">Oasis</span>
+          </div>
+          <div class="album">
+            <img src="https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/4e/43/27/4e432717-3af3-4cf7-6e49-e7e8d9e1adc9/196872428521.jpg/600x600bb.jpg" alt="Noah Kahan" />
+            <span class="album-label">Noah Kahan</span>
+          </div>
+          <div class="album">
+            <img src="https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/05/05/44/050544d1-f768-7038-f921-21e9fe878e0a/21UMGIM12126.rgb.jpg/600x600bb.jpg" alt="Drake" />
+            <span class="album-label">Drake</span>
+          </div>
+          <div class="album">
+            <img src="https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/5b/d8/d2/5bd8d272-71fb-6af3-a538-5a9a1b2c75b3/20UMGIM42529.rgb.jpg/600x600bb.jpg" alt="The Weeknd" />
+            <span class="album-label">The Weeknd</span>
+          </div>
+          <div class="album">
+            <img src="https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/e5/91/54/e5915409-e293-a7f2-1b17-c04ce3b4b4de/22UMGIM71184.rgb.jpg/600x600bb.jpg" alt="Bad Bunny" />
+            <span class="album-label">Bad Bunny</span>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <a href="#" class="cta">Download Harmoni</a>
+        <p class="cta-sub">Available on iOS &nbsp;·&nbsp; Android coming soon</p>
+      </div>
+
+      <hr class="divider" style="margin-left: 48px; margin-right: 48px;">
+
+      <div class="footer">
+        <p>You're receiving this because you joined the Harmoni waitlist.</p>
+        <p><a href="#">Unsubscribe</a> &nbsp;·&nbsp; <a href="https://harmoni.cc">harmoni.cc</a></p>
+        <p style="margin-top: 12px; color: #3A3A3C;">© 2026 Harmoni. Made with 🎵</p>
+      </div>
+    </div>
+  </div>
+</div>
