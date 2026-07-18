@@ -8,7 +8,7 @@ async function sendWaitlistConfirmation(toEmail) {
     to: toEmail,
     reply_to: 'diegodamiango02@gmail.com',
     subject: '🎵 You are on the waitlist of something awesome!',
-    template_id: process.env.RESEND_TEMPLATE_ID,
+    template: { id: 'welcome-to-harmoni' },
   });
 }
 
