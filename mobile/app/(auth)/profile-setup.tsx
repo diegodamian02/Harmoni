@@ -24,6 +24,8 @@ import { api } from '../../src/lib/api';
 import { Colors } from '../../src/theme/colors';
 import { FontFamily, FontSize } from '../../src/theme/typography';
 
+const AnimatedFlatList = Animated.createAnimatedComponent<typeof FlatList>(FlatList);
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type ArtistResult   = { itunesId: string; name: string };
@@ -451,7 +453,7 @@ export default function ProfileSetupScreen() {
                   : `${carouselData.length} result${carouselData.length !== 1 ? 's' : ''}`
                 }
               </Text>
-              <FlatList<TrackResult>
+              <AnimatedFlatList
                 data={carouselData}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -464,13 +466,14 @@ export default function ProfileSetupScreen() {
                   { useNativeDriver: true }
                 )}
                 scrollEventThrottle={16}
-                keyExtractor={item => item.itunesId}
-                getItemLayout={(_, index) => ({
+                keyExtractor={(item: any) => (item as TrackResult).itunesId}
+                getItemLayout={(_: any, index: number) => ({
                   length: COVER_ITEM_W,
                   offset: COVER_ITEM_W * index,
                   index,
                 })}
-                renderItem={({ item, index }) => {
+                renderItem={({ item, index }: { item: any; index: number }) => {
+                  const track = item as TrackResult;
                   const inputRange = [
                     (index - 1) * COVER_ITEM_W,
                     index * COVER_ITEM_W,
@@ -486,17 +489,17 @@ export default function ProfileSetupScreen() {
                     outputRange: [0.5, 1.0, 0.5],
                     extrapolate: 'clamp',
                   });
-                  const isSelected = selectedTracks.some(t => t.itunesId === item.itunesId);
+                  const isSelected = selectedTracks.some(t => t.itunesId === track.itunesId);
                   const atLimit    = !isSelected && picked >= 2;
                   return (
                     <Animated.View style={[styles.coverItem, { transform: [{ scale }], opacity }]}>
                       <Pressable
-                        onPress={() => { if (!atLimit) toggleTrack(item, artist.rank); }}
+                        onPress={() => { if (!atLimit) toggleTrack(track, artist.rank); }}
                         style={atLimit && !isSelected ? styles.coverDimmed : undefined}
                       >
-                        {item.artworkUrl ? (
+                        {track.artworkUrl ? (
                           <Image
-                            source={{ uri: item.artworkUrl }}
+                            source={{ uri: track.artworkUrl }}
                             style={styles.coverImage}
                             resizeMode="cover"
                           />
@@ -515,7 +518,7 @@ export default function ProfileSetupScreen() {
                         style={[styles.coverTitle, isSelected && styles.coverTitleSelected]}
                         numberOfLines={2}
                       >
-                        {item.name}
+                        {track.name}
                       </Text>
                     </Animated.View>
                   );
