@@ -38,8 +38,9 @@ Spotify OAuth is **out** (Feb 2026 API restrictions made it unviable). Harmoni i
 | Database | MongoDB Atlas |
 | Auth | JWT (email/password) |
 | Media | Cloudinary |
+| Email | Resend (`welcome-to-harmoni` template alias) |
 | Deployment | Railway (`api.harmoni.cc` + `harmoni.cc`) |
-| Domain | Namecheap — `harmoni.cc` |
+| DNS | Cloudflare — `harmoni.cc` |
 
 ---
 
@@ -75,23 +76,30 @@ Harmoni/
 │   ├── models/
 │   │   ├── User.js           # User + musicProfile schema
 │   │   ├── Artist.js         # Shared artist cache (iTunes/MusicBrainz/Last.fm)
+│   │   ├── Waitlist.js       # Waitlist email collection
 │   │   └── Message.js        # Chat messages
 │   ├── routes/
 │   │   ├── auth.js           # Register, login (rate limited)
+│   │   ├── waitlist.js       # Waitlist signup + Resend email
 │   │   ├── user.js           # Profile CRUD
 │   │   ├── music.js          # iTunes proxy + onboarding endpoints [TO BUILD]
 │   │   ├── match.js          # Swipe, match creation, blend
 │   │   └── messages.js       # Chat history
 │   ├── services/
 │   │   └── music.js          # iTunes/MusicBrainz/Last.fm service layer [TO BUILD]
+│   ├── utils/
+│   │   └── mailer.js         # Resend email sender
 │   └── matching/
 │       ├── score.js          # 3-layer compatibility scorer [TO BUILD]
 │       └── config.js         # Tunable scoring weights [TO BUILD]
 │
-└── web/                      # Next.js landing page
+└── web/                      # Next.js landing page (harmoni.cc)
     ├── app/layout.tsx         # Fonts, GTM, metadata
-    ├── components/            # Splash, Hero, Nav, Sections, Footer
-    └── public/albums/         # Local album art
+    ├── components/
+    │   ├── Splash.tsx         # Animated splash (wave letters + gradient underline)
+    │   ├── WaitlistSection.tsx # Waitlist form → api.harmoni.cc
+    │   └── ...                # Hero, Nav, HowItWorks, Footer
+    └── public/
 ```
 
 ---
@@ -116,31 +124,37 @@ On match creation: 8-track playlist interleaving 4 tracks from each user, guaran
 
 ---
 
-## Build Phases
+## Build Log
 
 ### Phase 0 — Foundation
-**Status: Complete**
-- [x] Monorepo structure
+**Completed: June 2026**
+- [x] Monorepo structure (`mobile/`, `server/`, `web/`)
 - [x] Express + MongoDB + JWT auth
 - [x] Expo app with expo-router + AuthContext
 - [x] Socket.io server-side
 
 ### Phase 1 — Security & Cleanup
-**Status: Complete**
-- [x] Spotify OAuth removed entirely
-- [x] passport / passport-spotify / express-session removed
+**Completed: July 11, 2026**
+- [x] Spotify OAuth removed entirely (pivot decision)
+- [x] `passport` / `passport-spotify` / `express-session` removed
 - [x] User model rebuilt with `musicProfile` schema
 - [x] Rate limiting on auth endpoints (10 req / 15 min)
-- [ ] Rotate MongoDB + Cloudinary credentials ← **Diego: do this manually**
+- [ ] Rotate MongoDB + Cloudinary credentials ← **Diego: do this manually** (exposed in earlier git history)
 
-### Phase 2 — Waitlist
-**Status: Not started**
-- [ ] `POST /api/waitlist` → save email to MongoDB
-- [ ] Wire `harmoni.cc` waitlist form to live endpoint
-- [ ] Rate limit the waitlist endpoint
+### Phase 2 — Waitlist & Landing Page
+**Completed: July 19, 2026**
+- [x] `POST /waitlist` → saves email to MongoDB (deduped, returns 200 either way)
+- [x] Rate limiting on waitlist endpoint (3 req / hr per IP)
+- [x] `trust proxy: 1` added to Express — fixes Railway + Cloudflare `X-Forwarded-For` issue
+- [x] Resend integration — fires `welcome-to-harmoni` template on every valid signup
+- [x] `api.harmoni.cc` CNAME in Cloudflare → Railway server
+- [x] Splash animation ported from mobile to web (Framer Motion — wave letters, gradient underline, tagline, fade-out)
+- [x] Waitlist form on `harmoni.cc` wired to live endpoint
+- [x] Gmail dark-mode inversion fixed (`color-scheme: light`, `bgcolor` fallbacks, white outer background)
+- [x] Album art in email sourced from iTunes Search API (verified working CDN URLs)
 
 ### Phase 3 — Music Service Layer
-**Status: Not started**
+**Status: Up next**
 - [ ] `server/services/music.js` — iTunes search proxy with Mongo cache (TTL 7d)
 - [ ] iTunes artist top-tracks endpoint (TTL 30d)
 - [ ] MusicBrainz background worker (p-queue, 1 req/sec, permanent cache)
@@ -149,23 +163,22 @@ On match creation: 8-track playlist interleaving 4 tracks from each user, guaran
 
 ### Phase 4 — Onboarding Endpoints
 **Status: Not started**
-- [ ] `POST /api/onboarding/genres` — save 3 genre chips (validated against curated list)
-- [ ] `GET /api/music/search?q=` — iTunes artist autocomplete
-- [ ] `GET /api/music/artists/:id/tracks` — top tracks for song picker
-- [ ] `POST /api/onboarding/artists` — save 4 ranked artists + trigger background jobs
-- [ ] `POST /api/onboarding/tracks` — save 8 songs (2 per artist)
+- [ ] `GET /music/search?q=` — iTunes artist autocomplete (debounced ≥3 chars / 300ms)
+- [ ] `GET /music/artists/:id/tracks` — top tracks for song picker
+- [ ] `POST /onboarding/genres` — save 3 genre chips (validated against curated list)
+- [ ] `POST /onboarding/artists` — save 4 ranked artists + trigger background jobs
+- [ ] `POST /onboarding/tracks` — save 8 songs (2 per artist)
 
 ### Phase 5 — Scoring & Matching
 **Status: Not started**
-- [ ] `server/matching/score.js` — 3-layer scorer (test-first)
+- [ ] `server/matching/score.js` — 3-layer scorer (test-first with fixtures)
 - [ ] Seed script: 15 realistic fake profiles
-- [ ] Pairwise histogram for weight calibration
+- [ ] Pairwise histogram for weight calibration (~20–90 spread target)
 - [ ] Swipe endpoints + match creation
-- [ ] Blend generator (8-track interleave)
+- [ ] Blend generator (8-track interleave, rank-1 artists guaranteed)
 
 ### Phase 6 — Mobile UI
-**Status: Blocked on Figma / In parallel with backend**
-- [ ] Remove Spotify references from mobile
+**Status: Blocked on Figma frames / runs in parallel with backend**
 - [ ] Genre chip screen (3 selections from curated list)
 - [ ] Artist search screen (debounced, autocomplete from iTunes proxy)
 - [ ] Song picker screen (2 songs per artist, cover art + 30-sec preview)
@@ -173,19 +186,13 @@ On match creation: 8-track playlist interleaving 4 tracks from each user, guaran
 - [ ] Match screen + Blend player (expo-av)
 - [ ] Socket.io client in messages screen
 
-### Phase 7 — Landing Page Update
+### Phase 7 — Launch Prep
 **Status: Not started**
-- [ ] Remove "Connect with Spotify" button from hero
-- [ ] Update HowItWorksSection copy (tap-based onboarding, no Spotify)
-- [ ] "Connect with Spotify" → "Join the Waitlist" single CTA
-- [ ] OG image for link previews
-
-### Phase 8 — Launch Prep
-**Status: Not started**
-- [ ] `prefers-reduced-motion` support for animations
+- [ ] Update CTA button in email template with real App Store link
+- [ ] `prefers-reduced-motion` support for web animations
 - [ ] Remove debug `console.log` from `mobile/app/_layout.tsx`
-- [ ] API rate limiting on all public endpoints
-- [ ] Fix hardcoded `BASE_URL` in `mobile/src/lib/api.ts`
+- [ ] Fix hardcoded `BASE_URL` in `mobile/src/lib/api.ts` (env-based)
+- [ ] OG image for link previews
 - [ ] Cold-start seed profiles in production DB
 
 ---
@@ -219,11 +226,12 @@ npx expo start --lan
 
 ## Environment Variables
 
-### Backend (`server/.env` + Railway backend service)
+### Backend (`server/.env` + Railway server service)
 ```
 MONGODB_URI=
 JWT_SECRET=
 JWT_EXPIRES_IN=7d
+RESEND_API_KEY=          # re_... from Resend dashboard
 LASTFM_API_KEY=
 LASTFM_SECRET=
 CLOUDINARY_CLOUD_NAME=
@@ -248,15 +256,18 @@ NEXT_PUBLIC_GTM_ID=GTM-TWRLQBQC
 | Landing page | Railway | Root: `web/`, build: `npm run build`, start: `npm start` |
 | Database | MongoDB Atlas | Whitelist `0.0.0.0/0` for Railway egress |
 
-**DNS (Namecheap):**
-- `api.harmoni.cc` → Railway backend
-- `harmoni.cc` / `www` → Railway web
+**DNS (Cloudflare — grey cloud / DNS only on both):**
+- `api.harmoni.cc` → Railway backend (CNAME)
+- `harmoni.cc` / `www` → Railway web (CNAME)
+
+> Proxy must be **grey cloud (DNS only)** — Railway terminates TLS itself; orange proxy causes cert errors.
 
 ---
 
 ## Security Notes
 
 - Never commit `.env` files — `.gitignore` covers this
-- Credentials go in Railway environment variables only
+- All credentials live in Railway environment variables only
 - **MongoDB password + Cloudinary API secret need manual rotation** (exposed in earlier git history)
-- Rate limiting: auth endpoints 10 req/15min · waitlist TBD
+- Rate limiting: auth 10 req/15min · waitlist 3 req/hr per IP
+- `trust proxy: 1` is set in `server/app.js` — required for Railway + Cloudflare to pass correct client IPs to the rate limiter
