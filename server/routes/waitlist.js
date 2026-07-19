@@ -21,12 +21,11 @@ router.post('/', waitlistLimiter, async (req, res) => {
   try {
     await Waitlist.create({ email: email.toLowerCase().trim() });
   } catch (err) {
-    if (err.code === 11000) {
-      // Already on waitlist — still send 200 so we don't leak which emails are registered
-      return res.status(200).json({ ok: true });
+    if (err.code !== 11000) {
+      console.error('Waitlist error:', err);
+      return res.status(500).json({ error: 'Server error.' });
     }
-    console.error('Waitlist error:', err);
-    return res.status(500).json({ error: 'Server error.' });
+    // Duplicate — fall through and still send the confirmation email
   }
 
   // Fire email async — don't block the response
@@ -34,7 +33,7 @@ router.post('/', waitlistLimiter, async (req, res) => {
     console.error('Waitlist email error:', err)
   );
 
-  res.status(201).json({ ok: true });
+  res.status(200).json({ ok: true });
 });
 
 module.exports = router;

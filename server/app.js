@@ -16,6 +16,7 @@ const waitlistRoutes = require('./routes/waitlist');
 const musicRoutes = require('./routes/music');
 
 const app = express();
+app.set('trust proxy', 1); // Railway + Cloudflare sit in front
 const server = http.createServer(app);
 
 const io = new Server(server, {
