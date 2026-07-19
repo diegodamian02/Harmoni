@@ -65,14 +65,26 @@ async function searchArtists(rawQuery) {
   const cached = await SearchCache.findOne({ query });
   if (cached) return cached.results;
 
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=musicArtist&limit=8`;
+  // Fetch more than needed so dedup still yields up to 8 unique names
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=musicArtist&limit=20`;
   const { status, body } = await fetchJson(url);
   if (status !== 200) throw new Error(`iTunes search ${status}`);
 
-  const results = (body.results || []).map((r) => ({
-    itunesId: String(r.artistId),
-    name:     r.artistName,
-  }));
+  // iTunes returns duplicate entries for the same artist (regional catalogs).
+  // Deduplicate by lowercased name — keep the first occurrence.
+  const seen = new Set();
+  const results = (body.results || [])
+    .filter((r) => {
+      const key = r.artistName.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 8)
+    .map((r) => ({
+      itunesId: String(r.artistId),
+      name:     r.artistName,
+    }));
 
   await SearchCache.findOneAndUpdate(
     { query },

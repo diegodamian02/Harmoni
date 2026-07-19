@@ -5,7 +5,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -133,9 +132,10 @@ export default function ProfileSetupScreen() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Step 7 — Song picker
-  const [artistTracks, setArtistTracks]     = useState<Record<string, TrackResult[]>>({});
-  const [tracksLoading, setTracksLoading]   = useState<Record<string, boolean>>({});
-  const [selectedTracks, setSelectedTracks] = useState<SelectedTrack[]>([]);
+  const [artistTracks, setArtistTracks]         = useState<Record<string, TrackResult[]>>({});
+  const [tracksLoading, setTracksLoading]        = useState<Record<string, boolean>>({});
+  const [selectedTracks, setSelectedTracks]      = useState<SelectedTrack[]>([]);
+  const [trackSearchQuery, setTrackSearchQuery]  = useState<Record<string, string>>({});
 
   // Step 8 — Ethnicity
   const [ethnicity, setEthnicity] = useState<string | null>(null);
@@ -515,50 +515,74 @@ export default function ProfileSetupScreen() {
             <Text style={styles.hint}>Pick 2 songs per artist — these go into your Blend</Text>
 
             {selectedArtists.map(artist => {
-              const tracks = artistTracks[artist.itunesId] ?? [];
-              const isLoading = tracksLoading[artist.itunesId] ?? false;
-              const picked = selectedTracks.filter(t => t.artistRank === artist.rank).length;
+              const allTracks  = artistTracks[artist.itunesId] ?? [];
+              const isLoading  = tracksLoading[artist.itunesId] ?? false;
+              const picked     = selectedTracks.filter(t => t.artistRank === artist.rank).length;
+              const q          = (trackSearchQuery[artist.itunesId] ?? '').toLowerCase().trim();
+              const filtered   = q.length > 0
+                ? allTracks.filter(t => t.name.toLowerCase().includes(q))
+                : allTracks;
 
               return (
                 <View key={artist.itunesId} style={styles.artistSection}>
+                  {/* Artist header */}
                   <View style={styles.artistSectionHeader}>
                     <Text style={styles.artistSectionName}>{artist.name}</Text>
                     <View style={[styles.pickBadge, picked === 2 && styles.pickBadgeDone]}>
-                      <Text style={styles.pickBadgeText}>{picked}/2{picked === 2 ? ' ✓' : ''}</Text>
+                      <Text style={[styles.pickBadgeText, picked === 2 && styles.pickBadgeTextDone]}>
+                        {picked}/2{picked === 2 ? ' ✓' : ''}
+                      </Text>
                     </View>
                   </View>
 
+                  {/* Search bar */}
+                  <TextInput
+                    value={trackSearchQuery[artist.itunesId] ?? ''}
+                    onChangeText={text =>
+                      setTrackSearchQuery(prev => ({ ...prev, [artist.itunesId]: text }))
+                    }
+                    placeholder={`Search ${artist.name} songs…`}
+                    autoCapitalize="none"
+                    returnKeyType="search"
+                    containerStyle={styles.trackSearchContainer}
+                  />
+
+                  {/* Track list */}
                   {isLoading ? (
                     <ActivityIndicator color={Colors.white} style={{ marginVertical: 12 }} />
-                  ) : tracks.length === 0 ? (
-                    <Text style={styles.noTracksText}>No tracks found</Text>
+                  ) : filtered.length === 0 ? (
+                    <Text style={styles.noTracksText}>
+                      {q.length > 0 ? 'No songs found' : 'No tracks available'}
+                    </Text>
                   ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                      style={styles.trackScroll} contentContainerStyle={styles.trackScrollContent}>
-                      {tracks.map(track => {
+                    <View style={styles.trackList}>
+                      {filtered.map((track, idx) => {
                         const isSelected = selectedTracks.some(t => t.itunesId === track.itunesId);
-                        const atLimit = !isSelected && selectedTracks.filter(t => t.artistRank === artist.rank).length >= 2;
+                        const atLimit    = !isSelected && picked >= 2;
                         return (
-                          <Pressable key={track.itunesId}
-                            style={[styles.trackCard, isSelected && styles.trackCardSelected, atLimit && styles.trackCardDisabled]}
-                            onPress={() => toggleTrack(track, artist.rank)}>
-                            {track.artworkUrl ? (
-                              <Image source={{ uri: track.artworkUrl }} style={styles.trackArt} />
-                            ) : (
-                              <View style={[styles.trackArt, styles.trackArtFallback]}>
-                                <Text style={styles.trackArtFallbackText}>♪</Text>
-                              </View>
-                            )}
-                            {isSelected && (
-                              <View style={styles.trackCheckOverlay}>
-                                <Text style={styles.trackCheckMark}>✓</Text>
-                              </View>
-                            )}
-                            <Text style={styles.trackName} numberOfLines={2}>{track.name}</Text>
+                          <Pressable
+                            key={track.itunesId}
+                            style={[
+                              styles.trackRow,
+                              idx < filtered.length - 1 && styles.trackRowBorder,
+                              isSelected && styles.trackRowSelected,
+                              atLimit && styles.trackRowDisabled,
+                            ]}
+                            onPress={() => toggleTrack(track, artist.rank)}
+                          >
+                            <View style={[styles.trackIndicator, isSelected && styles.trackIndicatorSelected]}>
+                              {isSelected && <Text style={styles.trackIndicatorCheck}>✓</Text>}
+                            </View>
+                            <Text
+                              style={[styles.trackRowName, isSelected && styles.trackRowNameSelected]}
+                              numberOfLines={1}
+                            >
+                              {track.name}
+                            </Text>
                           </Pressable>
                         );
                       })}
-                    </ScrollView>
+                    </View>
                   )}
                 </View>
               );
@@ -784,36 +808,54 @@ const styles = StyleSheet.create({
     paddingVertical: 4, paddingHorizontal: 12, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  pickBadgeDone: { backgroundColor: Colors.white },
-  pickBadgeText: { fontSize: FontSize.xs, fontFamily: FontFamily.semiBold, color: Colors.white },
+  pickBadgeDone:     { backgroundColor: Colors.white },
+  pickBadgeText:     { fontSize: FontSize.xs, fontFamily: FontFamily.semiBold, color: 'rgba(255,255,255,0.85)' },
+  pickBadgeTextDone: { color: Colors.gradientEnd },
 
-  // Track scroll
-  trackScroll:        { marginHorizontal: -4 },
-  trackScrollContent: { paddingHorizontal: 4, gap: 10, flexDirection: 'row' },
-  trackCard: {
-    width: 96, alignItems: 'center', gap: 6,
-    opacity: 1,
+  // Track search input
+  trackSearchContainer: { marginBottom: 4 },
+
+  // Track list (vertical, no artwork)
+  trackList: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 8,
   },
-  trackCardSelected: {},
-  trackCardDisabled: { opacity: 0.35 },
-  trackArt: {
-    width: 84, height: 84, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  trackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  trackArtFallback:     { alignItems: 'center', justifyContent: 'center' },
-  trackArtFallbackText: { fontSize: 28, color: 'rgba(255,255,255,0.4)' },
-  trackCheckOverlay: {
-    position: 'absolute', top: 0, left: 0, width: 84, height: 84,
-    borderRadius: 10, backgroundColor: 'rgba(255,45,150,0.75)',
+  trackRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.12)',
+  },
+  trackRowSelected: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  trackRowDisabled: { opacity: 0.35 },
+  trackIndicator: {
+    width: 22, height: 22, borderRadius: 11,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)',
     alignItems: 'center', justifyContent: 'center',
   },
-  trackCheckMark:  { fontSize: 28, color: Colors.white, fontFamily: FontFamily.semiBold },
-  trackName: {
-    fontSize: 11, fontFamily: FontFamily.regular,
-    color: 'rgba(255,255,255,0.85)', textAlign: 'center',
-    width: 84,
+  trackIndicatorSelected: {
+    backgroundColor: Colors.white,
+    borderColor: Colors.white,
   },
-  noTracksText: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.5)', fontFamily: FontFamily.regular },
+  trackIndicatorCheck: {
+    fontSize: 12, color: Colors.gradientEnd, fontFamily: FontFamily.semiBold,
+  },
+  trackRowName: {
+    flex: 1, fontSize: FontSize.md, fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  trackRowNameSelected: { color: Colors.white, fontFamily: FontFamily.semiBold },
+  noTracksText: {
+    fontSize: FontSize.sm, color: 'rgba(255,255,255,0.5)',
+    fontFamily: FontFamily.regular, marginBottom: 8,
+  },
 
   // Distance
   distanceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
