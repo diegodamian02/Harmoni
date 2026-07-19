@@ -38,8 +38,8 @@ type SelectedTrack  = TrackResult & { artistRank: number };
 const TOTAL_STEPS = 13;
 
 const SCREEN_W      = Dimensions.get('window').width;
-const COVER_SIZE    = 140;
-const COVER_MARGIN  = 10;
+const COVER_SIZE    = 240;
+const COVER_MARGIN  = 8;
 const COVER_ITEM_W  = COVER_SIZE + COVER_MARGIN * 2;
 const SIDE_PADDING  = (SCREEN_W - COVER_ITEM_W) / 2;
 
@@ -514,12 +514,12 @@ export default function ProfileSetupScreen() {
                   ];
                   const scale = scrollX.interpolate({
                     inputRange,
-                    outputRange: [0.78, 1.0, 0.78],
+                    outputRange: [0.72, 1.0, 0.72],
                     extrapolate: 'clamp',
                   });
                   const opacity = scrollX.interpolate({
                     inputRange,
-                    outputRange: [0.5, 1.0, 0.5],
+                    outputRange: [0.4, 1.0, 0.4],
                     extrapolate: 'clamp',
                   });
                   const isSelected = selectedTracks.some(t => t.itunesId === track.itunesId);
@@ -1039,24 +1039,24 @@ const styles = StyleSheet.create({
   },
   coverImage: {
     width: COVER_SIZE, height: COVER_SIZE,
-    borderRadius: 14,
+    borderRadius: 20,
   },
   coverPlaceholder: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center', justifyContent: 'center',
   },
   coverPlaceholderIcon: {
-    fontSize: 44, color: 'rgba(255,255,255,0.35)',
+    fontSize: 64, color: 'rgba(255,255,255,0.35)',
   },
   coverDimmed: { opacity: 0.35 },
   coverSelectedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 14,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center', justifyContent: 'center',
   },
   coverCheck: {
-    fontSize: 36, color: Colors.white, fontFamily: FontFamily.semiBold,
+    fontSize: 48, color: Colors.white, fontFamily: FontFamily.semiBold,
   },
   coverTitle: {
     marginTop: 8, fontSize: 11, fontFamily: FontFamily.regular,
