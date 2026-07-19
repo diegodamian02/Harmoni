@@ -143,10 +143,13 @@ export default function ProfileSetupScreen() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Steps 7–9 — Song picker (jukebox, one artist per step)
-  const [artistTracks, setArtistTracks]          = useState<Record<string, TrackResult[]>>({});
-  const [tracksLoading, setTracksLoading]        = useState<Record<string, boolean>>({});
-  const [selectedTracks, setSelectedTracks]      = useState<SelectedTrack[]>([]);
-  const [trackSearchQuery, setTrackSearchQuery]  = useState<Record<string, string>>({});
+  const [artistTracks, setArtistTracks]            = useState<Record<string, TrackResult[]>>({});
+  const [tracksLoading, setTracksLoading]          = useState<Record<string, boolean>>({});
+  const [selectedTracks, setSelectedTracks]        = useState<SelectedTrack[]>([]);
+  const [trackSearchQuery, setTrackSearchQuery]    = useState<Record<string, string>>({});
+  const [songSearchResults, setSongSearchResults]  = useState<Record<string, TrackResult[]>>({});
+  const [songSearching, setSongSearching]          = useState<Record<string, boolean>>({});
+  const songSearchDebounce = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // One Animated.Value per artist slot (0, 1, 2) for carousel scroll position
   const carouselScrollX = useRef<Animated.Value[]>([
@@ -230,6 +233,34 @@ export default function ProfileSetupScreen() {
       if (countForArtist >= 2) return;
       setSelectedTracks(prev => [...prev, { ...track, artistRank }]);
     }
+  };
+
+  // Live song search — calls API, debounced 300ms, ≥2 chars
+  const handleSongSearch = (itunesId: string, text: string) => {
+    setTrackSearchQuery(prev => ({ ...prev, [itunesId]: text }));
+
+    if (songSearchDebounce.current[itunesId]) {
+      clearTimeout(songSearchDebounce.current[itunesId]);
+    }
+
+    if (text.trim().length < 2) {
+      setSongSearchResults(prev => ({ ...prev, [itunesId]: [] }));
+      return;
+    }
+
+    songSearchDebounce.current[itunesId] = setTimeout(async () => {
+      setSongSearching(prev => ({ ...prev, [itunesId]: true }));
+      try {
+        const results = await api.get<TrackResult[]>(
+          `/music/artist/${itunesId}/search?q=${encodeURIComponent(text.trim())}`
+        );
+        setSongSearchResults(prev => ({ ...prev, [itunesId]: results }));
+      } catch {
+        setSongSearchResults(prev => ({ ...prev, [itunesId]: [] }));
+      } finally {
+        setSongSearching(prev => ({ ...prev, [itunesId]: false }));
+      }
+    }, 300);
   };
 
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -354,21 +385,20 @@ export default function ProfileSetupScreen() {
     const artist = selectedArtists[artistIdx];
     if (!artist) return null;
 
-    const scrollX   = carouselScrollX.current[artistIdx];
-    const allTracks = artistTracks[artist.itunesId] ?? [];
-    const isLoading = tracksLoading[artist.itunesId] ?? false;
-    const picked    = selectedTracks.filter(t => t.artistRank === artist.rank).length;
-    const q         = (trackSearchQuery[artist.itunesId] ?? '').toLowerCase().trim();
+    const scrollX        = carouselScrollX.current[artistIdx];
+    const allTracks      = artistTracks[artist.itunesId] ?? [];
+    const isLoading      = tracksLoading[artist.itunesId] ?? false;
+    const picked         = selectedTracks.filter(t => t.artistRank === artist.rank).length;
+    const q              = (trackSearchQuery[artist.itunesId] ?? '').trim();
+    const isSearchActive = q.length >= 2;
+    const apiResults     = songSearchResults[artist.itunesId] ?? [];
+    const isFetching     = songSearching[artist.itunesId] ?? false;
 
-    // Text list: top 4 search matches (only shown when searching)
-    const textMatches = q.length > 0
-      ? allTracks.filter(t => t.name.toLowerCase().includes(q)).slice(0, 4)
-      : [];
+    // Text list: top 4 live API results (only while search is active)
+    const textMatches = isSearchActive ? apiResults.slice(0, 4) : [];
 
-    // Carousel data: filtered when search is active, all tracks otherwise
-    const carouselData = q.length > 0
-      ? allTracks.filter(t => t.name.toLowerCase().includes(q))
-      : allTracks;
+    // Carousel: live search results when active, pre-loaded top tracks otherwise
+    const carouselData = isSearchActive ? apiResults : allTracks;
 
     const isLastArtist = artistIdx === 2;
 
@@ -388,17 +418,20 @@ export default function ProfileSetupScreen() {
         {/* Search bar */}
         <TextInput
           value={trackSearchQuery[artist.itunesId] ?? ''}
-          onChangeText={text =>
-            setTrackSearchQuery(prev => ({ ...prev, [artist.itunesId]: text }))
-          }
+          onChangeText={text => handleSongSearch(artist.itunesId, text)}
           placeholder="Search songs…"
           autoCapitalize="none"
           returnKeyType="search"
           containerStyle={styles.trackSearchContainer}
         />
 
+        {/* Spinner while API fetches results */}
+        {isFetching && (
+          <ActivityIndicator color={Colors.white} style={{ marginBottom: 8 }} />
+        )}
+
         {/* Text results (visible while typing) */}
-        {textMatches.length > 0 && (
+        {!isFetching && textMatches.length > 0 && (
           <View style={styles.trackList}>
             {textMatches.map((track, idx) => {
               const isSelected = selectedTracks.some(t => t.itunesId === track.itunesId);
@@ -428,7 +461,7 @@ export default function ProfileSetupScreen() {
             })}
           </View>
         )}
-        {q.length > 0 && textMatches.length === 0 && !isLoading && (
+        {isSearchActive && !isFetching && apiResults.length === 0 && (
           <Text style={styles.noTracksText}>No songs found for "{q}"</Text>
         )}
 
@@ -448,9 +481,9 @@ export default function ProfileSetupScreen() {
           ) : (
             <>
               <Text style={styles.carouselHint}>
-                {q.length === 0
-                  ? 'Scroll through · tap to pick'
-                  : `${carouselData.length} result${carouselData.length !== 1 ? 's' : ''}`
+                {isSearchActive
+                  ? `${carouselData.length} result${carouselData.length !== 1 ? 's' : ''} · tap to pick`
+                  : 'Scroll through · tap to pick'
                 }
               </Text>
               <AnimatedFlatList

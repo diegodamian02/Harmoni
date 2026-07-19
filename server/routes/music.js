@@ -4,7 +4,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const requireAuth = require('../middleware/auth');
-const { searchArtists, getArtistTopTracks } = require('../services/music');
+const { searchArtists, getArtistTopTracks, searchArtistSongs } = require('../services/music');
 
 const searchLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -43,6 +43,24 @@ router.get('/artist/:itunesId/tracks', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[music] tracks error:', err.message);
     res.status(502).json({ error: 'Could not load tracks.' });
+  }
+});
+
+// GET /music/artist/:itunesId/search?q=<song query>
+// Live song search within a specific artist's iTunes catalog.
+// Debounce on client (≥2 chars, 300ms).
+router.get('/artist/:itunesId/search', requireAuth, searchLimiter, async (req, res) => {
+  const { itunesId } = req.params;
+  const q = (req.query.q || '').trim();
+  if (!/^\d+$/.test(itunesId)) return res.status(400).json({ error: 'Invalid itunesId.' });
+  if (q.length < 2) return res.json([]);
+
+  try {
+    const results = await searchArtistSongs(itunesId, q);
+    res.json(results);
+  } catch (err) {
+    console.error('[music] song search error:', err.message);
+    res.status(502).json({ error: 'Song search unavailable.' });
   }
 });
 

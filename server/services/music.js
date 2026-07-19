@@ -254,8 +254,36 @@ async function resolveArtistBackground(itunesId, name) {
   }
 }
 
+// ─── Song search within an artist's catalog ──────────────────────────────────
+// Combines artist name + query so iTunes returns relevant results,
+// then filters to only tracks whose artistId matches.
+
+async function searchArtistSongs(itunesId, query) {
+  if (!query || query.trim().length < 2) return [];
+
+  const artist = await Artist.findOne({ itunesId: String(itunesId) });
+  const artistName = artist?.name ?? '';
+
+  // Prepend artist name so iTunes scores the right catalog first
+  const term = artistName ? `${artistName} ${query.trim()}` : query.trim();
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=50`;
+  const { status, body } = await fetchJson(url);
+  if (status !== 200) throw new Error(`iTunes search ${status}`);
+
+  return (body.results || [])
+    .filter((r) => String(r.artistId) === String(itunesId) && r.isStreamable === true)
+    .slice(0, 20)
+    .map((r) => ({
+      itunesId:   String(r.trackId),
+      name:       r.trackName,
+      previewUrl: r.previewUrl || null,
+      artworkUrl: swapArtwork(r.artworkUrl100),
+    }));
+}
+
 module.exports = {
   searchArtists,
   getArtistTopTracks,
   resolveArtistBackground,
+  searchArtistSongs,
 };
