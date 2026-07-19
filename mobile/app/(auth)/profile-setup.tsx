@@ -157,6 +157,7 @@ export default function ProfileSetupScreen() {
     new Animated.Value(0),
     new Animated.Value(0),
   ]);
+  const carouselListRef = useRef<(FlatList | null)[]>([null, null, null]);
 
   // Step 10 — Ethnicity
   const [ethnicity, setEthnicity] = useState<string | null>(null);
@@ -487,6 +488,7 @@ export default function ProfileSetupScreen() {
                 }
               </Text>
               <AnimatedFlatList
+                ref={(r: FlatList | null) => { carouselListRef.current[artistIdx] = r; }}
                 data={carouselData}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -527,7 +529,16 @@ export default function ProfileSetupScreen() {
                   return (
                     <Animated.View style={[styles.coverItem, { transform: [{ scale }], opacity }]}>
                       <Pressable
-                        onPress={() => { if (!atLimit) toggleTrack(track, artist.rank); }}
+                        onPress={() => {
+                          if (!atLimit) {
+                            toggleTrack(track, artist.rank);
+                            carouselListRef.current[artistIdx]?.scrollToIndex({
+                              index,
+                              animated: true,
+                              viewPosition: 0.5,
+                            });
+                          }
+                        }}
                         style={atLimit && !isSelected ? styles.coverDimmed : undefined}
                       >
                         {track.artworkUrl ? (
