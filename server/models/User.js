@@ -42,6 +42,30 @@ const userSchema = new mongoose.Schema({
     type:        { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], default: [0, 0] },
   },
+  maxDistance: { type: Number, default: 25 }, // miles
+
+  // Ethnicity — soft weight in ranking, never a hard filter
+  ethnicity: {
+    type: String,
+    enum: [
+      'Asian',
+      'Black / African American',
+      'Hispanic / Latino',
+      'Middle Eastern / North African',
+      'Native American / Indigenous',
+      'Pacific Islander',
+      'South Asian',
+      'White / Caucasian',
+      'Mixed / Multiracial',
+      'Prefer not to say',
+      null,
+    ],
+    default: null,
+  },
+  ethnicityPreferences: {
+    type: [String],
+    default: [], // empty = open to all
+  },
 
   musicProfile: { type: musicProfileSchema, default: () => ({}) },
 

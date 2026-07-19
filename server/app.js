@@ -14,6 +14,7 @@ const matchRoutes = require('./routes/match');
 const messageRoutes = require('./routes/messages');
 const waitlistRoutes = require('./routes/waitlist');
 const musicRoutes = require('./routes/music');
+const onboardingRoutes = require('./routes/onboarding');
 
 const app = express();
 app.set('trust proxy', 1); // Railway + Cloudflare sit in front
@@ -78,6 +79,7 @@ app.use('/match', matchRoutes);
 app.use('/messages', messageRoutes);
 app.use('/waitlist', waitlistRoutes);
 app.use('/music', musicRoutes);
+app.use('/onboarding', onboardingRoutes);
 
 app.get('/', (req, res) => res.send('Harmoni API'));
 
