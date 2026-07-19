@@ -63,19 +63,19 @@ router.post('/genres', requireAuth, async (req, res) => {
 });
 
 // POST /onboarding/artists
-// Body: { artists: [{ itunesId, name, rank }] }  — exactly 4, rank 1–4 unique
+// Body: { artists: [{ itunesId, name, rank }] }  — exactly 3, rank 1–3 unique
 // Triggers background MBID + Last.fm resolution for each artist.
 router.post('/artists', requireAuth, async (req, res) => {
   const { artists } = req.body;
-  if (!Array.isArray(artists) || artists.length !== 4) {
-    return res.status(400).json({ error: 'Exactly 4 artists required.' });
+  if (!Array.isArray(artists) || artists.length !== 3) {
+    return res.status(400).json({ error: 'Exactly 3 artists required.' });
   }
 
   const ranks = artists.map((a) => a.rank);
-  const validRanks = [1, 2, 3, 4];
+  const validRanks = [1, 2, 3];
   const hasAllRanks = validRanks.every((r) => ranks.includes(r));
-  if (!hasAllRanks || new Set(ranks).size !== 4) {
-    return res.status(400).json({ error: 'Artists must have unique ranks 1–4.' });
+  if (!hasAllRanks || new Set(ranks).size !== 3) {
+    return res.status(400).json({ error: 'Artists must have unique ranks 1–3.' });
   }
 
   for (const a of artists) {
@@ -126,24 +126,24 @@ router.post('/artists', requireAuth, async (req, res) => {
 });
 
 // POST /onboarding/tracks
-// Body: { tracks: [{ itunesId, name, previewUrl, artworkUrl, artistRank }] } — exactly 8
-// Validation: exactly 2 tracks per artistRank (ranks 1–4 each get 2)
+// Body: { tracks: [{ itunesId, name, previewUrl, artworkUrl, artistRank }] } — exactly 6
+// Validation: exactly 2 tracks per artistRank (ranks 1–3 each get 2)
 router.post('/tracks', requireAuth, async (req, res) => {
   const { tracks } = req.body;
-  if (!Array.isArray(tracks) || tracks.length !== 8) {
-    return res.status(400).json({ error: 'Exactly 8 tracks required.' });
+  if (!Array.isArray(tracks) || tracks.length !== 6) {
+    return res.status(400).json({ error: 'Exactly 6 tracks required.' });
   }
 
   for (const t of tracks) {
     if (!t.itunesId || !t.name || !t.artistRank) {
       return res.status(400).json({ error: 'Each track needs itunesId, name, and artistRank.' });
     }
-    if (t.artistRank < 1 || t.artistRank > 4) {
-      return res.status(400).json({ error: 'artistRank must be 1–4.' });
+    if (t.artistRank < 1 || t.artistRank > 3) {
+      return res.status(400).json({ error: 'artistRank must be 1–3.' });
     }
   }
 
-  const countsByRank = [1, 2, 3, 4].map(
+  const countsByRank = [1, 2, 3].map(
     (r) => tracks.filter((t) => t.artistRank === r).length
   );
   if (countsByRank.some((c) => c !== 2)) {

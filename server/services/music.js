@@ -104,7 +104,7 @@ async function getArtistTopTracks(itunesId) {
     return cached.topTracks;
   }
 
-  const url = `https://itunes.apple.com/lookup?id=${itunesId}&entity=song&limit=10`;
+  const url = `https://itunes.apple.com/lookup?id=${itunesId}&entity=song&limit=50`;
   const { status, body } = await fetchJson(url);
   if (status !== 200) throw new Error(`iTunes lookup ${status}`);
 

@@ -5,6 +5,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
+  FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -30,20 +33,26 @@ type SelectedTrack  = TrackResult & { artistRank: number };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 13;
+
+const SCREEN_W      = Dimensions.get('window').width;
+const COVER_SIZE    = 140;
+const COVER_MARGIN  = 10;
+const COVER_ITEM_W  = COVER_SIZE + COVER_MARGIN * 2;
+const SIDE_PADDING  = (SCREEN_W - COVER_ITEM_W) / 2;
 
 const STEP_LABELS = [
-  "What's your name?",
-  "When's your birthday?",
-  "What's your gender?",
-  'Who are you interested in?',
-  "What's your phone number?",
-  'Pick your top genres',
-  'Your favorite artists',
-  'Your favorite songs',
-  'Your ethnicity',
-  'How far away?',
-  'Add your photos',
+  "What's your name?",           // 0
+  "When's your birthday?",       // 1
+  "What's your gender?",         // 2
+  'Who are you interested in?',  // 3
+  "What's your phone number?",   // 4
+  'Pick your top genres',        // 5
+  'Your favorite artists',       // 6
+  '', '', '',                    // 7–9 dynamic (artist name)
+  'Your ethnicity',              // 10
+  'How far away?',               // 11
+  'Add your photos',             // 12
 ];
 
 const VALID_GENRES = [
@@ -81,8 +90,8 @@ type PartialUser = {
 
 function computeInitialStep(user: PartialUser): number {
   if (!user) return 0;
-  if (user.musicProfile?.profileReady) return 10;
-  if ((user.musicProfile?.artists?.length ?? 0) >= 4) return 7;
+  if (user.musicProfile?.profileReady) return 12;
+  if ((user.musicProfile?.artists?.length ?? 0) >= 3) return 7;
   if ((user.musicProfile?.genres?.length ?? 0) >= 3) return 6;
   if (user.interestedIn) return 5;
   return 0;
@@ -125,25 +134,33 @@ export default function ProfileSetupScreen() {
   );
 
   // Step 6 — Artist search
-  const [artistQuery, setArtistQuery]       = useState('');
-  const [artistResults, setArtistResults]   = useState<ArtistResult[]>([]);
-  const [artistSearching, setArtistSearching] = useState(false);
-  const [selectedArtists, setSelectedArtists] = useState<SelectedArtist[]>([]);
+  const [artistQuery, setArtistQuery]           = useState('');
+  const [artistResults, setArtistResults]       = useState<ArtistResult[]>([]);
+  const [artistSearching, setArtistSearching]   = useState(false);
+  const [selectedArtists, setSelectedArtists]   = useState<SelectedArtist[]>([]);
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Step 7 — Song picker
-  const [artistTracks, setArtistTracks]         = useState<Record<string, TrackResult[]>>({});
+  // Steps 7–9 — Song picker (jukebox, one artist per step)
+  const [artistTracks, setArtistTracks]          = useState<Record<string, TrackResult[]>>({});
   const [tracksLoading, setTracksLoading]        = useState<Record<string, boolean>>({});
   const [selectedTracks, setSelectedTracks]      = useState<SelectedTrack[]>([]);
   const [trackSearchQuery, setTrackSearchQuery]  = useState<Record<string, string>>({});
 
-  // Step 8 — Ethnicity
+  // One Animated.Value per artist slot (0, 1, 2) for carousel scroll position
+  const carouselScrollX = useRef<Animated.Value[]>([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]);
+
+  // Step 10 — Ethnicity
   const [ethnicity, setEthnicity] = useState<string | null>(null);
 
-  // Step 9 — Distance
+  // Step 11 — Distance
   const [maxDistance, setMaxDistance] = useState(25);
 
-  // Progress bar animation
+  // ─── Progress bar ──────────────────────────────────────────────────────────
+
   const progressAnim = useRef(new Animated.Value(1 / TOTAL_STEPS)).current;
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -153,24 +170,21 @@ export default function ProfileSetupScreen() {
     }).start();
   }, [step]);
 
-  // Fetch tracks when entering step 7
+  // ─── Load tracks when entering a per-artist step ──────────────────────────
+
   useEffect(() => {
-    if (step !== 7) return;
-    selectedArtists.forEach(async (artist) => {
-      if (artistTracks[artist.itunesId] !== undefined) return;
-      setTracksLoading(prev => ({ ...prev, [artist.itunesId]: true }));
-      try {
-        const tracks = await api.get<TrackResult[]>(`/music/artist/${artist.itunesId}/tracks`);
-        setArtistTracks(prev => ({ ...prev, [artist.itunesId]: tracks }));
-      } catch {
-        setArtistTracks(prev => ({ ...prev, [artist.itunesId]: [] }));
-      } finally {
-        setTracksLoading(prev => ({ ...prev, [artist.itunesId]: false }));
-      }
-    });
+    if (step < 7 || step > 9) return;
+    const artist = selectedArtists[step - 7];
+    if (!artist || artistTracks[artist.itunesId] !== undefined) return;
+    setTracksLoading(prev => ({ ...prev, [artist.itunesId]: true }));
+    api.get<TrackResult[]>(`/music/artist/${artist.itunesId}/tracks`)
+      .then(tracks => setArtistTracks(prev => ({ ...prev, [artist.itunesId]: tracks })))
+      .catch(() => setArtistTracks(prev => ({ ...prev, [artist.itunesId]: [] })))
+      .finally(() => setTracksLoading(prev => ({ ...prev, [artist.itunesId]: false })));
   }, [step]);
 
-  // Artist search with debounce
+  // ─── Artist search handlers ────────────────────────────────────────────────
+
   const handleArtistSearch = useCallback((text: string) => {
     setArtistQuery(text);
     if (searchDebounce.current) clearTimeout(searchDebounce.current);
@@ -189,7 +203,7 @@ export default function ProfileSetupScreen() {
   }, [selectedArtists]);
 
   const selectArtist = (artist: ArtistResult) => {
-    if (selectedArtists.length >= 4) return;
+    if (selectedArtists.length >= 3) return;
     const rank = selectedArtists.length + 1;
     setSelectedArtists(prev => [...prev, { ...artist, rank }]);
     setArtistResults(prev => prev.filter(r => r.itunesId !== artist.itunesId));
@@ -198,7 +212,6 @@ export default function ProfileSetupScreen() {
 
   const deselectArtist = (itunesId: string) => {
     const filtered = selectedArtists.filter(a => a.itunesId !== itunesId);
-    // Re-assign ranks after removal
     setSelectedArtists(filtered.map((a, i) => ({ ...a, rank: i + 1 })));
     setSelectedTracks(prev => {
       const rankToRemove = selectedArtists.find(a => a.itunesId === itunesId)?.rank;
@@ -216,6 +229,8 @@ export default function ProfileSetupScreen() {
       setSelectedTracks(prev => [...prev, { ...track, artistRank }]);
     }
   };
+
+  // ─── Navigation ───────────────────────────────────────────────────────────
 
   const goBack = () => {
     setError('');
@@ -273,7 +288,7 @@ export default function ProfileSetupScreen() {
       } finally { setLoading(false); }
 
     } else if (step === 6) {
-      if (selectedArtists.length !== 4) { setError('Select exactly 4 artists to continue.'); return; }
+      if (selectedArtists.length !== 3) { setError('Select exactly 3 artists to continue.'); return; }
       setLoading(true);
       try {
         await api.post('/onboarding/artists', {
@@ -284,8 +299,22 @@ export default function ProfileSetupScreen() {
         setError(e.message ?? 'Failed to save. Please try again.');
       } finally { setLoading(false); }
 
-    } else if (step === 7) {
-      if (selectedTracks.length !== 8) {
+    } else if (step === 7 || step === 8) {
+      const artist = selectedArtists[step - 7];
+      if (artist) {
+        const picked = selectedTracks.filter(t => t.artistRank === artist.rank).length;
+        if (picked !== 2) {
+          setError(`Pick 2 songs for ${artist.name} to continue.`);
+          return;
+        }
+      }
+      goNext();
+
+    } else if (step === 9) {
+      const allValid = selectedArtists.every(
+        a => selectedTracks.filter(t => t.artistRank === a.rank).length === 2
+      );
+      if (!allValid || selectedTracks.length !== 6) {
         setError('Pick 2 songs for each artist to continue.'); return;
       }
       setLoading(true);
@@ -296,17 +325,17 @@ export default function ProfileSetupScreen() {
         setError(e.message ?? 'Failed to save. Please try again.');
       } finally { setLoading(false); }
 
-    } else if (step === 8) {
+    } else if (step === 10) {
       if (ethnicity) {
         api.post('/onboarding/identity', { ethnicity }).catch(() => {});
       }
       goNext();
 
-    } else if (step === 9) {
+    } else if (step === 11) {
       api.post('/onboarding/identity', { maxDistance }).catch(() => {});
       goNext();
 
-    } else if (step === 10) {
+    } else if (step === 12) {
       setLoading(true);
       try {
         await api.post('/user/profile/complete', {});
@@ -315,6 +344,200 @@ export default function ProfileSetupScreen() {
         setError(e.message ?? 'Something went wrong.');
       } finally { setLoading(false); }
     }
+  };
+
+  // ─── Jukebox song-picker (one artist per step 7/8/9) ─────────────────────
+
+  const renderArtistSongStep = (artistIdx: number) => {
+    const artist = selectedArtists[artistIdx];
+    if (!artist) return null;
+
+    const scrollX   = carouselScrollX.current[artistIdx];
+    const allTracks = artistTracks[artist.itunesId] ?? [];
+    const isLoading = tracksLoading[artist.itunesId] ?? false;
+    const picked    = selectedTracks.filter(t => t.artistRank === artist.rank).length;
+    const q         = (trackSearchQuery[artist.itunesId] ?? '').toLowerCase().trim();
+
+    // Text list: top 4 search matches (only shown when searching)
+    const textMatches = q.length > 0
+      ? allTracks.filter(t => t.name.toLowerCase().includes(q)).slice(0, 4)
+      : [];
+
+    // Carousel data: filtered when search is active, all tracks otherwise
+    const carouselData = q.length > 0
+      ? allTracks.filter(t => t.name.toLowerCase().includes(q))
+      : allTracks;
+
+    const isLastArtist = artistIdx === 2;
+
+    return (
+      <>
+        {/* Heading */}
+        <Text style={styles.jukeboxArtist}>{artist.name}</Text>
+        <View style={styles.jukeboxMeta}>
+          <Text style={[styles.counter, picked === 2 && styles.counterFull]}>
+            {picked} / 2 songs{picked === 2 ? ' ✓' : ''}
+          </Text>
+          <View style={styles.rankBadge}>
+            <Text style={styles.rankBadgeText}>#{artist.rank}</Text>
+          </View>
+        </View>
+
+        {/* Search bar */}
+        <TextInput
+          value={trackSearchQuery[artist.itunesId] ?? ''}
+          onChangeText={text =>
+            setTrackSearchQuery(prev => ({ ...prev, [artist.itunesId]: text }))
+          }
+          placeholder="Search songs…"
+          autoCapitalize="none"
+          returnKeyType="search"
+          containerStyle={styles.trackSearchContainer}
+        />
+
+        {/* Text results (visible while typing) */}
+        {textMatches.length > 0 && (
+          <View style={styles.trackList}>
+            {textMatches.map((track, idx) => {
+              const isSelected = selectedTracks.some(t => t.itunesId === track.itunesId);
+              const atLimit    = !isSelected && picked >= 2;
+              return (
+                <Pressable
+                  key={track.itunesId}
+                  style={[
+                    styles.trackRow,
+                    idx < textMatches.length - 1 && styles.trackRowBorder,
+                    isSelected && styles.trackRowSelected,
+                    atLimit && styles.trackRowDisabled,
+                  ]}
+                  onPress={() => toggleTrack(track, artist.rank)}
+                >
+                  <View style={[styles.trackIndicator, isSelected && styles.trackIndicatorSelected]}>
+                    {isSelected && <Text style={styles.trackIndicatorCheck}>✓</Text>}
+                  </View>
+                  <Text
+                    style={[styles.trackRowName, isSelected && styles.trackRowNameSelected]}
+                    numberOfLines={1}
+                  >
+                    {track.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+        {q.length > 0 && textMatches.length === 0 && !isLoading && (
+          <Text style={styles.noTracksText}>No songs found for "{q}"</Text>
+        )}
+
+        {/* ── Jukebox carousel ── */}
+        <View style={styles.carouselWrapper}>
+          {isLoading ? (
+            <View style={styles.carouselCenter}>
+              <ActivityIndicator color={Colors.white} size="large" />
+              <Text style={styles.loadingText}>Loading tracks…</Text>
+            </View>
+          ) : carouselData.length === 0 ? (
+            <View style={styles.carouselCenter}>
+              <Text style={styles.noTracksText}>
+                {q.length > 0 ? 'No matches' : 'No tracks available'}
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.carouselHint}>
+                {q.length === 0
+                  ? 'Scroll through · tap to pick'
+                  : `${carouselData.length} result${carouselData.length !== 1 ? 's' : ''}`
+                }
+              </Text>
+              <FlatList<TrackResult>
+                data={carouselData}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={COVER_ITEM_W}
+                snapToAlignment="center"
+                decelerationRate="fast"
+                contentContainerStyle={{ paddingHorizontal: SIDE_PADDING }}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: true }
+                )}
+                scrollEventThrottle={16}
+                keyExtractor={item => item.itunesId}
+                getItemLayout={(_, index) => ({
+                  length: COVER_ITEM_W,
+                  offset: COVER_ITEM_W * index,
+                  index,
+                })}
+                renderItem={({ item, index }) => {
+                  const inputRange = [
+                    (index - 1) * COVER_ITEM_W,
+                    index * COVER_ITEM_W,
+                    (index + 1) * COVER_ITEM_W,
+                  ];
+                  const scale = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.78, 1.0, 0.78],
+                    extrapolate: 'clamp',
+                  });
+                  const opacity = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.5, 1.0, 0.5],
+                    extrapolate: 'clamp',
+                  });
+                  const isSelected = selectedTracks.some(t => t.itunesId === item.itunesId);
+                  const atLimit    = !isSelected && picked >= 2;
+                  return (
+                    <Animated.View style={[styles.coverItem, { transform: [{ scale }], opacity }]}>
+                      <Pressable
+                        onPress={() => { if (!atLimit) toggleTrack(item, artist.rank); }}
+                        style={atLimit && !isSelected ? styles.coverDimmed : undefined}
+                      >
+                        {item.artworkUrl ? (
+                          <Image
+                            source={{ uri: item.artworkUrl }}
+                            style={styles.coverImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={[styles.coverImage, styles.coverPlaceholder]}>
+                            <Text style={styles.coverPlaceholderIcon}>♪</Text>
+                          </View>
+                        )}
+                        {isSelected && (
+                          <View style={styles.coverSelectedOverlay}>
+                            <Text style={styles.coverCheck}>✓</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                      <Text
+                        style={[styles.coverTitle, isSelected && styles.coverTitleSelected]}
+                        numberOfLines={2}
+                      >
+                        {item.name}
+                      </Text>
+                    </Animated.View>
+                  );
+                }}
+              />
+            </>
+          )}
+        </View>
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <GradientButton
+          label={
+            loading ? 'Saving…'
+            : picked < 2 ? `${2 - picked} more song${2 - picked > 1 ? 's' : ''} to go`
+            : isLastArtist ? 'Finish & Continue'
+            : 'Next Artist →'
+          }
+          onPress={handleNext}
+          disabled={loading || picked !== 2}
+        />
+      </>
+    );
   };
 
   // ─── Step renderers ───────────────────────────────────────────────────────
@@ -443,13 +666,12 @@ export default function ProfileSetupScreen() {
 
       // Step 6: Artist Search
       case 6: {
-        const atMax = selectedArtists.length >= 4;
+        const atMax = selectedArtists.length >= 3;
         return (
           <>
             <Text style={styles.question}>{STEP_LABELS[6]}</Text>
-            <Text style={styles.hint}>Search and pick 4 artists — order matters (rank 1 is your #1)</Text>
+            <Text style={styles.hint}>Search and pick 3 artists — order matters (rank 1 is your #1)</Text>
 
-            {/* Selected artists */}
             {selectedArtists.length > 0 && (
               <View style={styles.selectedArtistsList}>
                 {selectedArtists.map(a => (
@@ -466,7 +688,6 @@ export default function ProfileSetupScreen() {
               </View>
             )}
 
-            {/* Search input */}
             {!atMax && (
               <>
                 <TextInput
@@ -476,8 +697,6 @@ export default function ProfileSetupScreen() {
                   autoCapitalize="words"
                   returnKeyType="search"
                 />
-
-                {/* Search results */}
                 {artistSearching && (
                   <ActivityIndicator color={Colors.white} style={{ marginTop: 8 }} />
                 )}
@@ -495,111 +714,25 @@ export default function ProfileSetupScreen() {
             )}
 
             <Text style={[styles.counter, atMax && styles.counterFull]}>
-              {selectedArtists.length} / 4 selected{atMax ? ' ✓' : ''}
+              {selectedArtists.length} / 3 selected{atMax ? ' ✓' : ''}
             </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <GradientButton label={loading ? 'Saving…' : 'Continue'} onPress={handleNext}
-              disabled={loading || selectedArtists.length !== 4} />
+              disabled={loading || selectedArtists.length !== 3} />
           </>
         );
       }
 
-      // Step 7: Song Picker
-      case 7: {
-        const allDone = selectedArtists.every(
-          a => selectedTracks.filter(t => t.artistRank === a.rank).length === 2
-        );
+      // Steps 7–9: Per-artist jukebox song picker
+      case 7: return renderArtistSongStep(0);
+      case 8: return renderArtistSongStep(1);
+      case 9: return renderArtistSongStep(2);
+
+      // Step 10: Ethnicity
+      case 10:
         return (
           <>
-            <Text style={styles.question}>{STEP_LABELS[7]}</Text>
-            <Text style={styles.hint}>Pick 2 songs per artist — these go into your Blend</Text>
-
-            {selectedArtists.map(artist => {
-              const allTracks  = artistTracks[artist.itunesId] ?? [];
-              const isLoading  = tracksLoading[artist.itunesId] ?? false;
-              const picked     = selectedTracks.filter(t => t.artistRank === artist.rank).length;
-              const q          = (trackSearchQuery[artist.itunesId] ?? '').toLowerCase().trim();
-              const filtered   = q.length > 0
-                ? allTracks.filter(t => t.name.toLowerCase().includes(q))
-                : allTracks;
-
-              return (
-                <View key={artist.itunesId} style={styles.artistSection}>
-                  {/* Artist header */}
-                  <View style={styles.artistSectionHeader}>
-                    <Text style={styles.artistSectionName}>{artist.name}</Text>
-                    <View style={[styles.pickBadge, picked === 2 && styles.pickBadgeDone]}>
-                      <Text style={[styles.pickBadgeText, picked === 2 && styles.pickBadgeTextDone]}>
-                        {picked}/2{picked === 2 ? ' ✓' : ''}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Search bar */}
-                  <TextInput
-                    value={trackSearchQuery[artist.itunesId] ?? ''}
-                    onChangeText={text =>
-                      setTrackSearchQuery(prev => ({ ...prev, [artist.itunesId]: text }))
-                    }
-                    placeholder={`Search ${artist.name} songs…`}
-                    autoCapitalize="none"
-                    returnKeyType="search"
-                    containerStyle={styles.trackSearchContainer}
-                  />
-
-                  {/* Track list */}
-                  {isLoading ? (
-                    <ActivityIndicator color={Colors.white} style={{ marginVertical: 12 }} />
-                  ) : filtered.length === 0 ? (
-                    <Text style={styles.noTracksText}>
-                      {q.length > 0 ? 'No songs found' : 'No tracks available'}
-                    </Text>
-                  ) : (
-                    <View style={styles.trackList}>
-                      {filtered.map((track, idx) => {
-                        const isSelected = selectedTracks.some(t => t.itunesId === track.itunesId);
-                        const atLimit    = !isSelected && picked >= 2;
-                        return (
-                          <Pressable
-                            key={track.itunesId}
-                            style={[
-                              styles.trackRow,
-                              idx < filtered.length - 1 && styles.trackRowBorder,
-                              isSelected && styles.trackRowSelected,
-                              atLimit && styles.trackRowDisabled,
-                            ]}
-                            onPress={() => toggleTrack(track, artist.rank)}
-                          >
-                            <View style={[styles.trackIndicator, isSelected && styles.trackIndicatorSelected]}>
-                              {isSelected && <Text style={styles.trackIndicatorCheck}>✓</Text>}
-                            </View>
-                            <Text
-                              style={[styles.trackRowName, isSelected && styles.trackRowNameSelected]}
-                              numberOfLines={1}
-                            >
-                              {track.name}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <GradientButton label={loading ? 'Saving…' : 'Continue'} onPress={handleNext}
-              disabled={loading || !allDone} />
-          </>
-        );
-      }
-
-      // Step 8: Ethnicity
-      case 8:
-        return (
-          <>
-            <Text style={styles.question}>{STEP_LABELS[8]}</Text>
+            <Text style={styles.question}>{STEP_LABELS[10]}</Text>
             <Text style={styles.hint}>This helps us find better matches for you — optional</Text>
             <View style={styles.chipWrap}>
               {VALID_ETHNICITIES.map(e => {
@@ -617,11 +750,11 @@ export default function ProfileSetupScreen() {
           </>
         );
 
-      // Step 9: Distance
-      case 9:
+      // Step 11: Distance
+      case 11:
         return (
           <>
-            <Text style={styles.question}>{STEP_LABELS[9]}</Text>
+            <Text style={styles.question}>{STEP_LABELS[11]}</Text>
             <Text style={styles.hint}>How far are you willing to travel to meet someone?</Text>
             <View style={styles.distanceGrid}>
               {DISTANCE_PRESETS.map(d => (
@@ -638,12 +771,12 @@ export default function ProfileSetupScreen() {
           </>
         );
 
-      // Step 10: Photos
-      case 10:
+      // Step 12: Photos
+      case 12:
         return (
           <>
             <Text style={styles.stubEmoji}>📸</Text>
-            <Text style={styles.question}>{STEP_LABELS[10]}</Text>
+            <Text style={styles.question}>{STEP_LABELS[12]}</Text>
             <Text style={styles.hint}>Show the real you — at least 1 photo required</Text>
             <View style={styles.stubBadge}>
               <Text style={styles.stubBadgeText}>Coming soon</Text>
@@ -679,8 +812,12 @@ export default function ProfileSetupScreen() {
       </View>
 
       <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false} nestedScrollEnabled>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        >
           {renderStep()}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -797,37 +934,26 @@ const styles = StyleSheet.create({
   resultName: { fontSize: FontSize.md, fontFamily: FontFamily.regular, color: Colors.textDark, flex: 1 },
   resultAdd:  { fontSize: FontSize.xl, color: Colors.primary, fontFamily: FontFamily.semiBold },
 
-  // Song picker — artist section
-  artistSection:      { marginBottom: 24 },
-  artistSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  artistSectionName: {
-    flex: 1, fontSize: FontSize.lg, fontFamily: FontFamily.semiBold,
-    color: Colors.white,
-  },
-  pickBadge: {
-    paddingVertical: 4, paddingHorizontal: 12, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  pickBadgeDone:     { backgroundColor: Colors.white },
-  pickBadgeText:     { fontSize: FontSize.xs, fontFamily: FontFamily.semiBold, color: 'rgba(255,255,255,0.85)' },
-  pickBadgeTextDone: { color: Colors.gradientEnd },
+  // ── Jukebox song-picker ──────────────────────────────────────────────────
 
-  // Track search input
-  trackSearchContainer: { marginBottom: 4 },
+  jukeboxArtist: {
+    fontSize: FontSize.title, fontFamily: FontFamily.semiBold,
+    color: Colors.white, marginBottom: 4,
+  },
+  jukeboxMeta: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20,
+  },
 
-  // Track list (vertical, no artwork)
+  trackSearchContainer: { marginBottom: 12 },
+
+  // Text search results list
   trackList: {
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 8,
+    borderRadius: 14, overflow: 'hidden', marginBottom: 12,
   },
   trackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 16, gap: 12,
   },
   trackRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -840,21 +966,69 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)',
     alignItems: 'center', justifyContent: 'center',
   },
-  trackIndicatorSelected: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.white,
-  },
-  trackIndicatorCheck: {
-    fontSize: 12, color: Colors.gradientEnd, fontFamily: FontFamily.semiBold,
-  },
-  trackRowName: {
-    flex: 1, fontSize: FontSize.md, fontFamily: FontFamily.regular,
-    color: 'rgba(255,255,255,0.85)',
-  },
+  trackIndicatorSelected: { backgroundColor: Colors.white, borderColor: Colors.white },
+  trackIndicatorCheck:    { fontSize: 12, color: Colors.gradientEnd, fontFamily: FontFamily.semiBold },
+  trackRowName:         { flex: 1, fontSize: FontSize.md, fontFamily: FontFamily.regular, color: 'rgba(255,255,255,0.85)' },
   trackRowNameSelected: { color: Colors.white, fontFamily: FontFamily.semiBold },
   noTracksText: {
     fontSize: FontSize.sm, color: 'rgba(255,255,255,0.5)',
     fontFamily: FontFamily.regular, marginBottom: 8,
+  },
+
+  // Carousel container
+  carouselWrapper: {
+    marginTop: 8,
+    marginHorizontal: -28, // break out of scroll padding to use full width
+    marginBottom: 24,
+  },
+  carouselCenter: {
+    height: COVER_SIZE + 60,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10, fontSize: FontSize.sm,
+    color: 'rgba(255,255,255,0.6)', fontFamily: FontFamily.regular,
+  },
+  carouselHint: {
+    fontSize: FontSize.xs, fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.5)', textAlign: 'center',
+    marginBottom: 12, letterSpacing: 0.4,
+  },
+
+  // Individual cover item in carousel
+  coverItem: {
+    width: COVER_SIZE,
+    marginHorizontal: COVER_MARGIN,
+    alignItems: 'center',
+  },
+  coverImage: {
+    width: COVER_SIZE, height: COVER_SIZE,
+    borderRadius: 14,
+  },
+  coverPlaceholder: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  coverPlaceholderIcon: {
+    fontSize: 44, color: 'rgba(255,255,255,0.35)',
+  },
+  coverDimmed: { opacity: 0.35 },
+  coverSelectedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  coverCheck: {
+    fontSize: 36, color: Colors.white, fontFamily: FontFamily.semiBold,
+  },
+  coverTitle: {
+    marginTop: 8, fontSize: 11, fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.75)', textAlign: 'center',
+    width: COVER_SIZE,
+  },
+  coverTitleSelected: {
+    color: Colors.white, fontFamily: FontFamily.semiBold,
   },
 
   // Distance
@@ -864,8 +1038,8 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
     alignItems: 'center',
   },
-  distanceBtnSelected:     { backgroundColor: Colors.white, borderColor: Colors.white },
-  distanceBtnLabel:        { fontSize: FontSize.xl, fontFamily: FontFamily.semiBold, color: Colors.white },
+  distanceBtnSelected:      { backgroundColor: Colors.white, borderColor: Colors.white },
+  distanceBtnLabel:         { fontSize: FontSize.xl, fontFamily: FontFamily.semiBold, color: Colors.white },
   distanceBtnLabelSelected: { color: Colors.gradientEnd },
 
   // Stubs
